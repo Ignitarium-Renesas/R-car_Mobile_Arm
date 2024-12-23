@@ -20,21 +20,17 @@ The **Mobile Pick and Place** project involves a robotic arm mounted on an Auton
 
 ### Steps to Set Up the Project
  
-#### 1. Create a ROS 2 Workspace
+#### 1. Create a ROS 2 Workspace and Clone repo
 ```bash
 mkdir -p ~/ros2_ws/src
-cd ~/ros2_ws
+cd ~/ros2_ws/src
+git clone https://github.com/Ignitarium-Renesas/R-car_Mobile_Arm.git
 ```
-
-#### 2. Download and Unzip the `rcar_communication` Source Code
-Download the package from the provided link, then extract it inside the `src` folder of your ROS 2 workspace:
-```bash
-unzip rcar_communication.zip -d ~/ros2_ws/src
 ```
 #### 3. Install requirements
 ```bash
 cd ~/ros2_ws
-pip install -r src/pose_estimation_pkg/pose_estimation_pkg/libs/requirements.txt
+pip install -r src/R-car_Mobile_Arm/pose_estimation_pkg/pose_estimation_pkg/libs/requirements.txt
 pip install pymycobot --upgrade
 ```
  
@@ -64,7 +60,7 @@ ssh er@10.42.0.1
 ```
  
 ##### Step 3: Launch the ROS 2 Navigation Stack
-1. Open a terminal and launch the AMR controller:
+1. Open a terminal and launch the AMR  and ARM controller:
 ```bash
 ros2 launch roverrobotics_driver rover_controller.launch.py
 ```
@@ -77,7 +73,7 @@ ros2 launch roverrobotics_driver navigation_launch.py
 1. Open another terminal.
 2. Navigate to the `pose_estimation_pkg` package inside its `lib` folder:
 ```bash
-cd ~/ros2_ws/src/pose_estimation_pkg/pose_estimation_pkg/lib
+cd ~/ros2_ws/src/R-car_Mobile_Arm/pose_estimation_pkg/pose_estimation_pkg/lib
 ```
 3. Run the camera activation script:
 ```bash
