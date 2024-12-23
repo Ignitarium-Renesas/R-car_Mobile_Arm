@@ -26,7 +26,7 @@ mkdir -p ~/ros2_ws/src
 cd ~/ros2_ws/src
 git clone https://github.com/Ignitarium-Renesas/R-car_Mobile_Arm.git
 ```
-```
+
 #### 3. Install requirements
 ```bash
 cd ~/ros2_ws
