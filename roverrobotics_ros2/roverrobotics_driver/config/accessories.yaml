@@ -1,0 +1,14 @@
+# RPLidar S2 Settings
+rplidar:
+  ros__parameters:
+    active: false
+    serial_port: "/dev/rplidar"
+    serial_baudrate: 115200
+    frame_id: "lidar_link"
+    inverted: false
+    angle_compensate: true
+    scan_mode: "Sensitivity"
+    #scan_frequency: 10.0
+
+# BNO055 IMU Settings
+

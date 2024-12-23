@@ -1,0 +1,60 @@
+detection_type:
+  value: yolo
+  choices:
+  - yolo
+  hint: detection model type
+
+yolo_model_type:
+  value: yolov8s
+  choices:
+  - yolov8n
+  - yolov8s
+  - yolov8m
+  - yolov8l
+  - yolov8x
+  hint: yolo model type to train
+
+camera_type:
+  value: mecheye
+  hint: Camera type to capture data for registration
+
+detection_roi_wh:
+  w: 800
+  h: 800
+  hint: region to crop for detection
+
+detection_threshold:
+  min_size: null
+  max_size: null
+  hint: Object dimensions in mm
+  min_dim_small: 81
+  max_dim_small: 230
+  min_dim_large: 194
+  max_dim_large: 314
+
+segmentation_sam_model:
+  value: vit_b
+  choices:
+  - vit_b
+  - vit_l
+  - vit_h
+  - edge_sam
+  - edge_sam_3x
+  hint: SAM backbone for instance segmentation
+
+template_pose_model:
+  linemod: pose/template_pose/configs/model/resnet_50_linemod.yaml
+  phase_2a: pose/template_pose/configs/model/resnet_50_phase_2a.yaml
+  hint: Template pose model to use for pose estimation
+
+display: :0
+
+camera_id: 0
+
+pose_threshold: 0.8
+
+similarity_threshold: 0.9
+
+icp_threshold: 0.6
+
+scale_factor: 4
