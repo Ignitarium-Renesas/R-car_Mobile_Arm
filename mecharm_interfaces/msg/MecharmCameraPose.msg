@@ -1,0 +1,2 @@
+mecharm_interfaces/MecharmCoords pose
+bool has_detection

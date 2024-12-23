@@ -1,0 +1,6 @@
+# Request
+
+---
+# Response
+int32 error_code         # Error code (0 = success, non-zero = error)
+string error_message     # Description of the error

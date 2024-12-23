@@ -1,0 +1,165 @@
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro" name="rover_mini">
+
+    <!-- Robot Parameters -->
+    <xacro:property name="wheel_z_offset" value="-0.0155" />
+    <xacro:property name="wheel_x_offset" value="0.11" />
+    <xacro:property name="front_wheel_x_offset" value="0.006" />
+    <xacro:property name="wheel_y_offset" value="0.155" />
+    <xacro:property name="wheel_mass" value="3.62874" />
+    <xacro:property name="chassis_mass" value="1.36078" />
+
+    <!-- Part Includes - Payload, Sensors, Etc.. -->
+    <!-- Comment or Uncomment any of these to add them to the dev payload -->
+    <!-- You can always link them elsewhere if you wish by editing accessories/<sensor>.urdf -->
+    <xacro:property name="payload_z_offset" value="0.1105" />
+    <xacro:include filename="$(find rcar_communication)/urdf/rover_dev_payload.urdf" />
+    <xacro:include filename="$(find rcar_communication)/urdf/rplidar_s2.urdf" />
+    <xacro:include filename="$(find rcar_communication)/urdf/arm.urdf.xacro" />
+
+    <!-- Robot Description -->
+    <link name="base_link" />
+    <link name="chassis_link">
+        <visual>
+            <origin xyz="0.01 0.02 0" rpy="0 -0 1.5708" />
+            <geometry>
+                <mesh filename="file://$(find rcar_communication)/meshes/mini_chassis.dae"/>
+            </geometry>
+        </visual>
+
+        <collision>
+            <origin xyz="0.01 0.02 0" rpy="0 -0 1.5708" />
+            <geometry>
+                <mesh filename="file://$(find rcar_communication)/meshes/mini_chassis.dae"/>
+            </geometry>
+        </collision>
+
+        <inertial>
+            <origin xyz="0.0 0.0 0.02" rpy="0 0 0"/>
+            <mass value="${chassis_mass}" />
+            <inertia ixx="0.006453" ixy="0"  ixz="0" iyy="0.0117" iyz="0" izz="0.015812" />
+        </inertial>
+    </link>
+
+    <joint name="base_to_chassis" type="fixed">
+        <parent link="base_link"/>
+        <child link="chassis_link"/>
+        <origin xyz="0 0 0.0965"/>
+    </joint>
+
+    <link name="fl_wheel_link">
+        <visual>
+            <origin xyz="0 0 0" rpy="1.57 3.1415 0" />
+            <geometry>
+                <mesh filename="file://$(find rcar_communication)/meshes/hub_6.5in.dae"/>
+            </geometry>
+        </visual>
+
+        <collision>
+            <origin xyz="0 0 0" rpy="1.57 3.1415 0" />
+            <geometry>
+                <mesh filename="file://$(find rcar_communication)/meshes/hub_6.5in.dae"/>
+            </geometry>
+        </collision>
+
+        <inertial>
+            <origin xyz="0 0 0" rpy="0 0 0" />
+            <mass value="${wheel_mass}" />
+            <inertia ixx="0.008093" ixy="0"  ixz="0" iyy="0.014226" iyz="0" izz="0.008093" />
+        </inertial>
+        <mu>5.0</mu>
+    </link>
+    <joint name="fl_wheel_to_chassis" type="continuous">
+        <parent link="chassis_link"/>
+        <child link="fl_wheel_link"/>
+        <axis xyz="0 1 0"/>
+        <origin xyz="${wheel_x_offset - front_wheel_x_offset} ${wheel_y_offset} ${wheel_z_offset}"/>
+    </joint>
+
+    <link name="fr_wheel_link">
+        <visual>
+            <origin xyz="0 0 0" rpy="1.57 3.1415 3.1415" />
+            <geometry>
+                <mesh filename="file://$(find rcar_communication)/meshes/hub_6.5in.dae"/>
+            </geometry>
+        </visual>
+
+        <collision>
+            <origin xyz="0 0 0" rpy="1.57 3.1415 3.1415" />
+            <geometry>
+                <mesh filename="file://$(find rcar_communication)/meshes/hub_6.5in.dae"/>
+            </geometry>
+        </collision>
+
+        <inertial>
+            <origin xyz="0 0 0" rpy="0 0 0" />
+            <mass value="${wheel_mass}" />
+            <inertia ixx="0.008093" ixy="0"  ixz="0" iyy="0.014226" iyz="0" izz="0.008093" />
+        </inertial>
+        <mu>5.0</mu>
+    </link>
+    <joint name="fr_wheel_to_chassis" type="continuous">
+        <parent link="chassis_link"/>
+        <child link="fr_wheel_link"/>
+        <axis xyz="0 1 0"/>
+        <origin xyz="${wheel_x_offset - front_wheel_x_offset}  ${-wheel_y_offset} ${wheel_z_offset}"/>
+    </joint>
+
+    <link name="rl_wheel_link">
+        <visual>
+            <origin xyz="0 0 0" rpy="1.57 3.1415 0" />
+            <geometry>
+                <mesh filename="file://$(find rcar_communication)/meshes/hub_6.5in.dae"/>
+            </geometry>
+        </visual>
+
+        <collision>
+            <origin xyz="0 0 0" rpy="1.57 3.1415 0" />
+            <geometry>
+                <mesh filename="file://$(find rcar_communication)/meshes/hub_6.5in.dae"/>
+            </geometry>
+        </collision>
+
+        <inertial>
+            <origin xyz="0 0 0" rpy="0 0 0" />
+            <mass value="${wheel_mass}" />
+            <inertia ixx="0.008093" ixy="0"  ixz="0" iyy="0.014226" iyz="0" izz="0.008093" />
+        </inertial>
+        <mu>5.0</mu>
+    </link>
+    <joint name="rl_wheel_to_chassis" type="continuous">
+        <parent link="chassis_link"/>
+        <child link="rl_wheel_link"/>
+        <axis xyz="0 1 0"/>
+        <origin xyz="${-wheel_x_offset} ${wheel_y_offset} ${wheel_z_offset}"/>
+    </joint>
+
+    <link name="rr_wheel_link">
+        <visual>
+            <origin xyz="0 0 0" rpy="1.57 3.1415 3.1415" />
+            <geometry>
+                <mesh filename="file://$(find rcar_communication)/meshes/hub_6.5in.dae"/>
+            </geometry>
+        </visual>
+
+        <collision>
+            <origin xyz="0 0 0" rpy="1.57 3.1415 3.1415" />
+            <geometry>
+                <mesh filename="file://$(find rcar_communication)/meshes/hub_6.5in.dae"/>
+            </geometry>
+        </collision>
+
+        <inertial>
+            <origin xyz="0 0 0" rpy="0 0 0" />
+            <mass value="${wheel_mass}" />
+            <inertia ixx="0.008093" ixy="0"  ixz="0" iyy="0.014226" iyz="0" izz="0.008093" />
+        </inertial>
+        <mu>5.0</mu>
+    </link>
+    <joint name="rr_wheel_to_chassis" type="continuous">
+        <parent link="chassis_link"/>
+        <child link="rr_wheel_link"/>
+        <axis xyz="0 1 0"/>
+        <origin xyz="${-wheel_x_offset} ${-wheel_y_offset} ${wheel_z_offset}"/>
+    </joint>
+
+</robot>
