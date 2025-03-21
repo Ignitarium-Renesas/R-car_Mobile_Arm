@@ -1,0 +1,6 @@
+# Request
+string search_direction  # Request: string indicating search direction
+float32 search_offset    # The search offset
+---
+# Response
+bool search_status         # Error code (True = success, False = error)

@@ -28,7 +28,19 @@ setup(
     tests_require=['pytest'],
     entry_points={
         'console_scripts': [
-            'rcar_communication_node = rcar_communication.rcar_communication_node:main'
+            # 'rcar_communication_node = rcar_communication.rcar_communication_node:main',
+            'arm_services = rcar_communication.arm_services:main',
+            'arm_set_pose_client = rcar_communication.arm_set_pose_client:main',
+            'arm_set_pick_pose_client = rcar_communication.arm_set_pick_pose_client:main',
+            'arm_linear_control_client = rcar_communication.arm_linear_control_client:main',
+            'arm_gripper_control_client = rcar_communication.arm_gripper_control_client:main',
+            'arm_search_client = rcar_communication.arm_search_client:main',
+
+            'set_initial_pose= rcar_communication.base_set_pose_services:main',
+            'set_initial_pose_client= rcar_communication.set_initial_pose_client:main',
+            'go_to_goal_srv= rcar_communication.base_go_to_pose:main',
+            'go_to_goal_client= rcar_communication.base_go_to_goal_client:main',
+
         ],
     },
 )

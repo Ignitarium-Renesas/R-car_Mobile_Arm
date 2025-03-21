@@ -22,7 +22,7 @@ class Preset(IntEnum):
 
 
 class CamReader:
-    def __init__(self,cam_name = "D405",config_file="cam_settings.json") -> None:
+    def __init__(self,cam_name = "D405_848_C2",config_file="cam_settings.json") -> None:
         self.config_path = config_file
         self.cam_name = cam_name
         self.load_json()
@@ -38,9 +38,9 @@ class CamReader:
             self.config = {
                 "serial": "",
                 "color_format": "RS2_FORMAT_RGB8",
-                "color_resolution": [640,480],
+                "color_resolution": [848,480],
                 "depth_format": "RS2_FORMAT_Z16",
-                "depth_resolution": [640,480],
+                "depth_resolution": [848,480],
                 "fps": 5,
                 "visual_preset": ""
             }

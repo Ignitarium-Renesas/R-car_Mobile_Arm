@@ -1,0 +1,6 @@
+# Request
+bool gripper_state  # Request: Gripper State. True - open, False - Close.
+---
+# Response
+bool error_code         # Error code (True = success, False = error)
+string error_message     # Description of the error

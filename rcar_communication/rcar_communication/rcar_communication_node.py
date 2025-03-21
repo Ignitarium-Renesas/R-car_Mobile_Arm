@@ -21,6 +21,7 @@ from mecharm_interfaces.msg import (MecharmAngles,
                                     MecharmCameraPose
                                     )
 from std_srvs.srv import Empty
+from geometry_msgs.msg import Twist
 from rclpy.callback_groups import ReentrantCallbackGroup, MutuallyExclusiveCallbackGroup
 from sensor_msgs.msg import JointState
 from pymycobot.mecharm270 import MechArm270
@@ -37,12 +38,13 @@ import threading
 from ament_index_python.packages import get_package_share_directory, PackageNotFoundError
 from nav2_simple_commander.robot_navigator import BasicNavigator, TaskResult
 from rclpy.duration import Duration
+from mecharm_interfaces.srv import CapturePose 
 
 class RcarCommunication(Node):
 
     def __init__(self):
         super().__init__('rcar_communication_node')
-        _package_name = "rcar_communication"
+        _package_name = "rcar_communication"    
         self.tf_buffer = Buffer()
         self.tf_listener = TransformListener(self.tf_buffer, self)
         self.navigator = BasicNavigator()
@@ -59,7 +61,7 @@ class RcarCommunication(Node):
         self.declare_parameter('place_pose', [150.6, -138.3, 110.8, -70.01, 81.84, -85.9])
         
         # Declare start_pose and end_pose as parameters
-        self.declare_parameter('pick_location', [0.9, 0.0, 0.0])
+        self.declare_parameter('pick_location', [1.115, 0.0, 0.0])
         self.declare_parameter('place_location', [1.8, 0.0, 0.0])
         self.declare_parameter('search_offset', 25)
         self.declare_parameter('pick_x_offset', 40)
@@ -84,7 +86,16 @@ class RcarCommunication(Node):
         self.package_path =self.get_package_path(_package_name)
         self.get_logger().info(f"Connecting to port -> {_port} with baud rate -> {_baud}")
         
-        
+        initial_pose = PoseStamped()
+        initial_pose.header.frame_id = 'map'
+        initial_pose.header.stamp = self.navigator.get_clock().now().to_msg()
+        initial_pose.pose.position.x = 0.0
+        initial_pose.pose.position.y = 0.0
+        initial_pose.pose.orientation.z = 0.0
+        initial_pose.pose.orientation.w = 1.0
+        self.navigator.setInitialPose(initial_pose)
+
+        self.data_list = [0.0] * 14
         self.lock = threading.Lock()
         self.mc = None
         self.reentrant_callback = ReentrantCallbackGroup()
@@ -92,7 +103,10 @@ class RcarCommunication(Node):
         self.mecharm_error_code = None
         self.mecharm_error_msg = ""
         self.object_pose = MecharmCameraPose()
-        
+        self.capture_pose_client = None
+        #self.connector_pose = CapturePose()
+
+
         try:
             if _has_socket:
                 self.mc = MechArmSocket(_srver_ip,9000)
@@ -114,6 +128,7 @@ class RcarCommunication(Node):
                                                      topic="joint_states",
                                                      qos_profile=10
                                                      )
+        self.cmd_vel_pub = self.create_publisher(Twist, 'cmd_vel', 10)
         
         self.camera_pose_sub = self.create_subscription(msg_type=MecharmCameraPose,topic='camera_pose', 
                                                         callback=self.camera_pose_callback,
@@ -125,12 +140,253 @@ class RcarCommunication(Node):
         self.pick_place_srv = self.create_service(PickObject, 'pick_place_object', self.pick_place_callback,callback_group=self.mutually_callback)
         self.pick_place_location_srv = self.create_service(PickObject, 'pick_place_move', self.move_callback,callback_group=self.mutually_callback)
         self.run_demo_srv = self.create_service(PickObject, 'run_demo', self.run_demo_callback,callback_group=self.mutually_callback)
-        
-        
+        self.search_pick_srv = self.create_service(PickObject, 'search_demo', self.search_demo_callback,callback_group=self.mutually_callback)
+        self.service_demo_srv = self.create_service(PickObject, 'service_demo_srv', self.service_demo_callback,callback_group=self.mutually_callback)
+        self.capture_pose_client = self.create_client(CapturePose, 'capture_pose', callback_group=self.reentrant_callback)
+        # Wait until the service is available
+        while not self.capture_pose_client.wait_for_service(timeout_sec=1.0):
+            self.get_logger().info('Waiting for the capture_pose service...')
+
+        self.get_logger().info('capture_pose service is available.')
+
         self.publisher_timer = self.create_timer(timer_period_sec=0.05,
                                                  callback=self.publishers_callback, 
                                                  callback_group=self.reentrant_callback)
         self.get_logger().info(f"RCAR RADY TO GO")
+        self.x_distance = 0
+        self.y_distance = 0
+        self.x_base_th = 200
+        self.y_base_th = 50
+
+
+    def service_demo_callback(self, req, res):
+        error_code = self.demo_srv_action()
+        if isinstance(error_code, int):
+            res.error_code = error_code
+        else:
+            self.get_logger().info(f"The variable is not an integer. It is of type: {type(error_code).__name__}")
+        res.error_message  = self.get_error_message(res.error_code)
+        
+        return res
+
+    def get_obj_pose(self):
+        request = CapturePose.Request()
+
+        # Call  service
+        future = self.capture_pose_client.call_async(request)
+        rclpy.spin_until_future_complete(self, future)
+
+        if future.result() is not None:
+            response = future.result()
+            if response.pose.has_detection:
+                pose = response.pose.pose
+                self.get_logger().info(f"Detected Pose: x={pose.x}, y={pose.y}, z={pose.z}")
+                return pose
+            else:
+                self.get_logger().info("No object detected.")
+        else:
+            self.get_logger().error("Service call failed.")
+        return None
+    
+
+
+    def demo_srv_action(self):
+
+        obj_pose = self.get_obj_pose()
+        if obj_pose is None:
+            return 90
+        
+        error_code = self.camera_service_pick_action()
+        if error_code != 0:
+            return error_code
+        
+        error_code = self.place_action()
+        if error_code != 0:
+             return error_code
+        return 0
+
+    def publish_cmd(self, x=0.0, y=0.0):
+        vel_cmd = Twist()
+        vel_cmd.linear.x = x
+        vel_cmd.linear.y = y
+        self.cmd_vel_pub.publish(vel_cmd)
+    def do_teleop(self, x_speed=0.0, y_speed=0.0, distance=0.0):
+        """
+        Optimized teleop function to move the robot with assisted teleoperation.
+        
+        Parameters:
+        - x_speed (float): Linear speed along the x-axis.
+        - y_speed (float): Linear speed along the y-axis.
+        - distance (float): Distance to move before stopping.
+        
+        Returns:
+        - bool: True if task completes, False otherwise.
+        """
+        self.navigator.assistedTeleop(time_allowance=15)
+
+        # Initialize PoseStamped once
+        pose = PoseStamped()
+        pose.header.frame_id = 'map'
+        pose.header.stamp = self.navigator.get_clock().now().to_msg()
+        pose.pose.position.x = 0.0
+        pose.pose.position.y = 0.0
+        pose.pose.position.z = 0.0
+        pose.pose.orientation.x = 0.0
+        pose.pose.orientation.y = 0.0
+        pose.pose.orientation.z = 0.0
+        pose.pose.orientation.w = 1.0
+
+        # Get the initial pose
+        initial_pose = self.get_transformed_pose(pose, target_frame='map', source_frame='base_footprint')
+
+        if not initial_pose:
+            self.get_logger().warn("Failed to get the initial pose.")
+            return False
+
+        # Loop until the task is complete
+        rate = self.navigator.create_rate(5)  # Equivalent to 5 Hz loop rate
+        self.get_logger().info(f"distance: {distance}")
+        while not self.navigator.isTaskComplete():
+            current_pose = self.get_transformed_pose(pose, target_frame='map', source_frame='base_footprint')
+            if current_pose:
+                displacement = current_pose.position.x - initial_pose.position.x
+                if abs(displacement) < distance:
+                    self.publish_cmd(x=x_speed, y=y_speed)  # Publish velocity commands
+                else:
+                    self.get_logger().info("Target distance reached. Stopping teleop.")
+                    self.publish_cmd()  # Stop the robot
+                    self.navigator.cancelTask()  # Cancel assisted teleop
+                    break
+            else:
+                self.get_logger().warn("Failed to get the current pose. Stopping teleop.")
+                self.publish_cmd()  # Stop the robot
+                break
+
+            rate.sleep()  # Maintain loop timing
+
+        self.publish_cmd()  # Stop the robot after exiting the loop
+        return True
+
+        
+    def check_base_correction(self, y_value, min_y=50, max_y=1000):
+        """
+        Check if the base correction is required based on the Y-value.
+
+        Parameters:
+        y_value (float): The Y-value to check (e.g., object's Y-position relative to the base).
+        min_y (float): The minimum allowable Y-value.
+        max_y (float): The maximum allowable Y-value.
+
+        Returns:
+        bool: True if the Y-value is within range, False otherwise.
+        """
+        if min_y <= abs(y_value) <= max_y:
+            return True
+        else:
+            return False
+    def do_base_correction(self, pose, cmd=False):
+        if cmd:
+            if not self.check_base_correction(pose[1]):
+                return True
+
+            x_speed = 0.08 if pose[1] > 0 else -0.08
+            return self.do_teleop(x_speed=x_speed, y_speed=0.0, distance=abs(pose[1]))
+        #qx, qy, qz, qw = self.euler_to_quat(0.0, 0.0, 0.0)
+        goal_pose = PoseStamped()
+        goal_pose.header.frame_id = 'map'
+        goal_pose.header.stamp = self.navigator.get_clock().now().to_msg()
+        goal_pose.pose.position.x = pose[0]/1000.0
+        goal_pose.pose.position.y = pose[1]/1000.0
+        goal_pose.pose.position.z = 0.0
+        goal_pose.pose.orientation.x = 0.0
+        goal_pose.pose.orientation.y = 0.0
+        goal_pose.pose.orientation.z = 0.0
+        goal_pose.pose.orientation.w = 1.0
+
+        # Get the initial pose
+        map_pose = self.get_transformed_pose(goal_pose, target_frame='map', source_frame='base')
+        if map_pose:
+            x_value = map_pose.position.x
+            y_value = map_pose.position.y - 0.15
+            # Create a Rotation object from the quaternion
+            #rotation = Rotation.from_quat([qx, qy, qz, qw])
+
+            # Get Euler angles in radians
+            #roll, pitch, yaw = rotation.as_euler('xyz', degrees=True)
+            
+            new_goal = [x_value, y_value, 0.0]
+            self.get_logger().info(f"Base Moving to a new goal: {new_goal}")
+            return not self.move_to_location(new_goal)
+        return False  
+        
+    def search_pick_action(self):
+        
+        if self.mc is None:
+            self.get_logger().error("Invalid arm controller")
+            return 60  
+        
+
+        # Step 1: Clear previous errors and open the gripper
+        self.mc.clear_error_information()
+        if not self.mc.set_gripper_state(0, 30, 1):  # Open gripper
+            self.get_logger().error("Failed to open gripper.")
+            return 55
+        self.get_logger().info("Gripper opened.")
+        
+        if not self.find_object():
+            self.get_logger().error("Object not found during pick action.")
+            return 50
+        cam_pose = self.object_pose.pose
+        base_pose = self.get_pose_about_base(cam_pose)
+        
+        self.get_logger().info(f"POSE W.R.T camera: {cam_pose} , POSE W.R.T BASE: {base_pose}")
+        # Step 2: Check if the object is detected
+        if not self.do_base_correction(base_pose):
+            self.get_logger().error("Base correction Failed!")
+            return 84
+        
+        if not self.find_object():
+            self.get_logger().error("Object not found during pick action.")
+            return 50
+        cam_pose = self.object_pose.pose
+        base_pose = self.get_pose_about_base(cam_pose)
+        
+        self.get_logger().info(f"POSE W.R.T camera: {cam_pose} , POSE W.R.T BASE: {base_pose}")
+        if not self.validate_coordinates(base_pose):
+            self.get_logger().error("Pose out of reach")
+            return 65
+        # Step 3: Move to the object's base pose
+        if not self.sync_move_to_coords(base_pose, timeout=5):
+            return self.mc.get_error_information()
+
+        # Step 4: Move to the pick point (with offset)
+        pick_point_x = base_pose[0] + self.pick_x_offset
+        if not self.move_and_check_error(1, pick_point_x):
+            return self.mc.get_error_information()
+
+        self.get_logger().info("Pick point reached.")
+
+        # Step 5: Close the gripper to pick the object
+        if not self.mc.set_gripper_state(1, 30, 1):  # Close gripper
+            self.get_logger().error("Failed to close gripper.")
+            return 55
+
+        self.get_logger().info("Gripper closed.")
+        self.mc.send_coords(self.home_pose, self.default_speed, self.default_model)
+        # Success
+        return 0
+    
+    def search_demo_callback(self, req, res):
+        error_code = self.search_demo_action()
+        if isinstance(error_code, int):
+            res.error_code = error_code
+        else:
+            self.get_logger().info(f"The variable is not an integer. It is of type: {type(error_code).__name__}")
+        res.error_message  = self.get_error_message(res.error_code)
+        
+        return res
+    
+    
     def run_demo_callback(self, req, res):
         error_code = self.demo_action()
         if isinstance(error_code, int):
@@ -138,21 +394,37 @@ class RcarCommunication(Node):
         else:
             self.get_logger().info(f"The variable is not an integer. It is of type: {type(error_code).__name__}")
         res.error_message  = self.get_error_message(res.error_code)
+        
         return res
+    def search_demo_action(self):
+        error_code = self.move_to_location(self.pick_location)
+        if error_code != 0:
+            return error_code
+        #time.sleep(10)
+        error_code = self.search_pick_action()
+        if error_code != 0:
+            return error_code
+        error_code = self.move_to_location(self.place_location)
+        if error_code != 0:
+            return error_code
+        error_code = self.place_action()
+        if error_code != 0:
+            return error_code
+        return 0
     
     def demo_action(self):
         error_code = self.move_to_location(self.pick_location)
-        if error_code:
+        if error_code != 0:
             return error_code
-        time.sleep(10)
+        #time.sleep(10)
         error_code = self.camera_pick_action()
-        if error_code:
+        if error_code != 0:
             return error_code
         error_code = self.move_to_location(self.place_location)
-        if error_code:
+        if error_code != 0:
             return error_code
         error_code = self.place_action()
-        if error_code:
+        if error_code != 0:
             return error_code
         return 0
         
@@ -261,7 +533,7 @@ class RcarCommunication(Node):
             transform = self.tf_buffer.lookup_transform(
                 target_frame,  # Target frame
                 source_frame,  # Source frame
-                rclpy.time.Time(),  # Use the latest available transform
+                rclpy.time.Time(),  # Use the latest available transform 
                 timeout=rclpy.duration.Duration(seconds=1.0)  # Timeout duration
             )
 
@@ -326,7 +598,7 @@ class RcarCommunication(Node):
 
             coords_data = [
                 (base_pose.position.x - 0.125)*1000,
-                (base_pose.position.y + 0.015)*1000,
+                (base_pose.position.y + 0.008)*1000,
                 (base_pose.position.z + 0.01)*1000,
                 179.0,
                 90.0,
@@ -345,8 +617,8 @@ class RcarCommunication(Node):
     def send_home_and_check_detection(self):
         
         """Move to the home position and check if the object is detected."""
-        if self.mc and self.mc.send_coords(self.home_pose, self.default_speed, self.default_model):
-            time.sleep(3)
+        if self.mc.send_coords(self.home_pose, self.default_speed, self.default_model):
+            time.sleep(5)
         return self.object_pose.has_detection
 
     def adjust_and_check_detection(self, axis_index, offset):
@@ -361,7 +633,7 @@ class RcarCommunication(Node):
             bool: True if the object is detected, otherwise False.
         """
         if self.mc and self.mc.send_coord(axis_index, offset, self.default_speed):
-            time.sleep(10)
+            time.sleep(5)
             return self.object_pose.has_detection
         return False
     def turn_and_check_detection(self, axis_index, offset):
@@ -375,8 +647,8 @@ class RcarCommunication(Node):
         Returns:
             bool: True if the object is detected, otherwise False.
         """
-        if self.mc and self.mc.send_angle(axis_index, offset, self.default_speed):
-            time.sleep(10)
+        if self.mc.send_angle(axis_index, offset, self.default_speed):
+            time.sleep(5)
             return self.object_pose.has_detection
         return False
 
@@ -417,10 +689,10 @@ class RcarCommunication(Node):
         current_angles = self.mc.get_angles()
         self.get_logger().info(f"Searching .... axis {axis_index} with current angles {current_angles}")
         if current_angles:
-            move_axis = current_angles[axis_index-1] + self.search_offset
+            move_axis = current_angles[axis_index-1] - (self.search_offset + 10.0)
             if self.turn_and_check_detection(axis_index, move_axis):
                 return True
-            move_axis = current_angles[axis_index-1] - self.search_offset
+            move_axis = current_angles[axis_index-1] + self.search_offset
             # Negative direction
             if self.turn_and_check_detection(axis_index, move_axis):
                 return True
@@ -442,11 +714,11 @@ class RcarCommunication(Node):
             return True
         
         # Step 2: Search up and down
-        if self.search_on_joint(5):  # Y-axis
+        if self.search_on_joint(1):  # Y-axis
             return True
 
         # Step 3: Search left and right
-        if self.search_on_joint(1):  # Z-axis
+        if self.search_on_joint(5):  # Z-axis
             return True
         
         # Step 6: Reset to home position and final check
@@ -474,6 +746,65 @@ class RcarCommunication(Node):
 
         return True   
     
+    def pick_service_action(self):
+        """
+        Executes the pick action for an object at the specified pose.
+
+        Parameters:
+            pose (list): The object's pose in camera coordinates.
+
+        Returns:
+            int: Error code indicating the outcome of the operation.
+                0   - Success
+                50  - Object not found during pick action
+                55  - Gripper action failed
+                >0  - Error code from self.mc.get_error_information()
+        """
+        if self.mc is None:
+            self.get_logger().error("Invalid arm controller")
+            return 60  
+        
+
+        # Step 1: Clear previous errors and open the gripper
+        self.mc.clear_error_information()
+        if not self.mc.set_gripper_state(0, 30, 1):  # Open gripper
+            self.get_logger().error("Failed to open gripper.")
+            return 55
+        self.get_logger().info("Gripper opened.")
+        
+        obj_pose = self.get_obj_pose()  # Ensure pose is fetched
+        if obj_pose is None:
+            return 90
+        base_pose = self.get_pose_about_base(obj_pose)
+        self.get_logger().info(f"POSE W.R.T camera: {obj_pose} , POSE W.R.T BASE: {base_pose}")
+        # Step 2: Check if the object is detected
+        
+        if not self.validate_coordinates(base_pose):
+            self.get_logger().error("Pose out of reach")
+            return 65
+
+        # Step 3: Move to the object's base pose
+        if not self.sync_move_to_coords(base_pose, timeout=5):
+            return self.mc.get_error_information()
+
+        # Step 4: Move to the pick point (with offset)
+        pick_point_x = base_pose[0] + self.pick_x_offset
+        if not self.move_and_check_error(1, pick_point_x):
+            return self.mc.get_error_information()
+
+        self.get_logger().info("Pick point reached.")
+
+        # Step 5: Close the gripper to pick the object
+        if not self.mc.set_gripper_state(1, 30, 1):  # Close gripper
+            self.get_logger().error("Failed to close gripper.")
+            return 55
+
+        self.get_logger().info("Gripper closed.")
+        
+        self.mc.send_coords(self.home_pose, self.default_speed, self.default_model)
+        # Success
+        return 0
+    
     def pick_action(self):
         """
         Executes the pick action for an object at the specified pose.
@@ -499,9 +830,9 @@ class RcarCommunication(Node):
             self.get_logger().error("Failed to open gripper.")
             return 55
         self.get_logger().info("Gripper opened.")
-        error_code = self.mc.get_error_information()
-        if error_code != 0:
-            return error_code
+        #error_code = self.mc.get_error_information()
+        #if error_code != 0:
+            #return error_code
         
         if not self.find_object():
             self.get_logger().error("Object not found during pick action.")
@@ -532,9 +863,9 @@ class RcarCommunication(Node):
             return 55
 
         self.get_logger().info("Gripper closed.")
-        error_code = self.mc.get_error_information()
-        if error_code != 0:
-            return error_code
+        #error_code = self.mc.get_error_information()
+        #if error_code != 0:
+            #return error_code
 
         # Step 6: Return to the home pose
         #if not self.sync_move_to_coords(self.home_pose, timeout=5):
@@ -546,6 +877,9 @@ class RcarCommunication(Node):
     
     def camera_pick_action(self):
         return self.pick_action()
+    
+    def camera_service_pick_action(self):
+        return self.pick_service_action()
         
     
     def place_action(self):
@@ -558,9 +892,9 @@ class RcarCommunication(Node):
             return 55
 
         self.get_logger().info("Gripper opened.")
-        error_code = self.mc.get_error_information()
-        if error_code != 0:
-            return error_code
+        #error_code = self.mc.get_error_information()
+        #if error_code != 0:
+            #return error_code
         self.mc.send_coords(self.home_pose, self.default_speed, self.default_model)
         return 0
 
@@ -632,18 +966,27 @@ class RcarCommunication(Node):
         joint_state_send.effort = []
         
         # Initialize positions with zeros
-        data_list = [0.0] * 14
+        
         
         # Get joint angles from `mc` if available
         if self.mc:
             try:
                 angles = self.mc.get_radians()
-                data_list[:len(angles)] = angles  # Update with angles, fill the rest with zeros
+                # Check if `angles` is iterable
+                if hasattr(angles, '__iter__'):
+                    # Try to convert all elements in `angles` to float
+                    try:
+                        angles = [float(angle) for angle in angles]
+                        self.data_list[:len(angles)] = angles  # Update with converted angles
+                    except ValueError:
+                        self.get_logger().warn("Not all elements in 'angles' are convertible to float.")
+                else:
+                    self.get_logger().warn("'angles' is not iterable.")
             except Exception as e:
                 self.get_logger().warn(f"Error fetching joint angles: {e}")
         
         # Assign positions to the JointState message
-        joint_state_send.position = data_list
+        joint_state_send.position = self.data_list
         
         # Publish the joint states
         self.mecharm_joint_pub.publish(joint_state_send)
@@ -727,6 +1070,10 @@ class RcarCommunication(Node):
             return "Navigation Goal failed!."
         if error_code == 83:
             return "Navigation Goal has an invalid return status!"
+        if error_code == 84:
+            return "Base correction failed"
+        if error_code == 90:
+            return "Object Pose Service call failed."
         
         else:
             return f"Unknown error code is {error_code}."

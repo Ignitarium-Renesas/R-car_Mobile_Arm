@@ -5,94 +5,92 @@ The **Mobile Pick and Place** project involves a robotic arm mounted on an Auton
  
 ### System Workflow
 1. **Navigation ( roverrobotics_ros2 )** : The AMR navigates from its current location to the designated pick and drop location using the Nav2 stack.
-2. **Object Detection and 3D Pose Estimation( pose_estimation_pkg )**: A YOLO-based object detection module identifies the object and uses it for estimating the pose of the object relative to the camera.
+2. **Object Detection and 6D Pose Estimation( pose_estimation_pkg )**: A YOLO-based AI module identifies the object and uses it for estimating the 6D pose of the object relative to the camera by utilizing Hyco compiler.
 3. **Pose Transformation**: The `rcar_communication` package transforms the pose from the camera frame to the base frame of the robotic arm.
 4. **Pick-and-Place Operation**: Joint angles are calculated, and the robotic arm executes the pick-and-place task.
  
 ---
- 
 ## Setup Instructions
- 
-### Prerequisites
-- [ROS 2 Humble installed on your system](https://docs.ros.org/en/humble/Installation.html).
-- Correct hardware connections for the AMR and robotic arm.
-- A YOLO-based object detection model.
 
-### Steps to Set Up the Project
- 
-#### 1. Create a ROS 2 Workspace and Clone repo
-```bash
+
+
+## Prerequisites
+- ROS 2 Humble installed on your system.
+- Correct hardware connections for the AMR and robotic arm.
+- A YOLO v8-based object detection model.
+- Install Node.js for GUI.
+
+## Steps to Set Up the Project
+
+### 1. Create a ROS 2 Workspace and Clone Repository
+```sh
 mkdir -p ~/ros2_ws/src
 cd ~/ros2_ws/src
+
 git clone https://github.com/Ignitarium-Renesas/R-car_Mobile_Arm.git
 ```
 
-#### 3. Install requirements
-```bash
+### 2. Install Requirements
+```sh
 cd ~/ros2_ws
-pip install -r src/R-car_Mobile_Arm/pose_estimation_pkg/pose_estimation_pkg/libs/requirements.txt
-pip install pymycobot --upgrade
+pip install -r src/pose_estimation_pkg/requirements.txt 
+pip install pymycobot --upgrade 
+
+cd ~/ros2_ws/Rcar_board_2/Project-Rover-Robot
+npm i 
 ```
- 
-#### 4. Build the Workspace
-```bash
+
+### 3. Build the Workspace
+```sh
 cd ~/ros2_ws
 colcon build
 ```
- 
-#### 5. Run the Project
- 
-##### Step 1: Verify Connections
-- Ensure all hardware connections are correctly set up.
-- Turn on the robotic arm.
- 
-##### Step 2: Connect to the Robotic Arm Controller
-1. Connect to the Wi-Fi access point:
-   - **SSID**: ElephantRobotics_AP
-2. Log in to the robotic arm controller using SSH:
-```bash
-ssh er@10.42.0.1
+
+## Run Application
+
+### Step 1: Verify Connections
+Ensure all hardware connections are correctly set up.
+
+- Turn on the Wi-Fi Router.
+- Turn on the robotic arm & MyAGV mobile base.
+
+### Step 2: Connect to the MyAGV and MechArm Robotic Arm Controller
+
+Connect to the Wi-Fi access point:
+```sh
+SSID: Robotics_5G  
+Pass: IGN_Robo  
+```
+Log in to the MyAGV Mobile Base using SSH:
+```sh
+ssh er@192.168.0.222
 # Password: Elephant
 ```
-3. Start the server:
-```bash
-./start_server.sh
+
+### Step 3: Launch the RealSense Camera Node
+Open a terminal in the MyAGV system and launch the camera node:
+```sh
+ros2 launch realsense2_camera rs_launch.py
 ```
- 
-##### Step 3: Launch the ROS 2 Navigation Stack
-1. Open a terminal and launch the AMR  and ARM controller:
-```bash
-ros2 launch roverrobotics_driver rover_controller.launch.py
+
+### Step 4: Run the Demo Application Node
+Open another terminal on your laptop and run:
+```sh
+ros2 run rcar_demo task_node
 ```
-2. Open another terminal and launch the navigation stack:
+For 6Dof, open a terminal and run
 ```bash
-ros2 launch roverrobotics_driver navigation_launch.py
+ros2 param set /camera_pose_srv 6dof True
 ```
- 
-##### Step 4: Activate the Camera for Pose Estimation
-1. Open another terminal.
-2. Navigate to the `pose_estimation_pkg` package inside its `lib` folder:
-```bash
-cd ~/ros2_ws/src/R-car_Mobile_Arm/pose_estimation_pkg/pose_estimation_pkg/lib
+
+### Step 5: Launch the GUI
+Navigate to the `Project-Rover-Robot` folder and run:
+```sh
+node index.js
 ```
-3. Run the camera activation script:
-```bash
-python3 send.py
+Open a browser and enter the following in the search bar:
+```sh
+http://localhost:5000/
 ```
- 
-##### Step 5: Perform the Pick-and-Place Operation
-Use the following ROS 2 service to execute the demo:
-```bash
-ros2 service call /run_demo mecharm_interfaces/srv/PickObject {}
-```
- 
----
- 
-## Notes
-- Ensure all components are powered on and properly configured before running the project.
-- The navigation stack must be correctly tuned to ensure accurate AMR movement.
-- Verify the YOLO object detection module is properly trained for the target objects.
-- Add dockerfile.
-- Add images of the different stages.
- 
-For troubleshooting, refer to the system logs and debug messages in the ROS 2 terminals.
+Select the Connector and then click on the **Start Demo** button to start the Navigation and Picking.
+

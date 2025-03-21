@@ -27,7 +27,11 @@ setup(
     tests_require=['pytest'],
     entry_points={
         'console_scripts': [
-            'camera_pose = pose_estimation_pkg.camera_pose:main'
+            'camera_pose = pose_estimation_pkg.camera_pose:main',
+            'camera_pose_srv = pose_estimation_pkg.camera_pose_srv:main',
+            'camera_pose_srv_test = pose_estimation_pkg.camera_pose_srv_test:main',
+            'pose_est_client = pose_estimation_pkg.pose_est_client:main',
+
         ],
     },
 )

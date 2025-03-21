@@ -1,5 +1,5 @@
 # Request
-
+mecharm_interfaces/MecharmCameraPose pose
 ---
 # Response
 int32 error_code         # Error code (0 = success, non-zero = error)

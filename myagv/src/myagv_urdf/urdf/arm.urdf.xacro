@@ -1,0 +1,478 @@
+<?xml version="1.0"?>
+<robot  xmlns:xacro="http://www.ros.org/wiki/xacro" name="firefighter" >
+	
+<xacro:property name="width" value=".2" />
+<xacro:property name="effort" value="1000.0"/>
+<xacro:property name="velocity" value="0.0"/>
+
+
+  <link name="base">
+	<inertial>
+		<origin xyz="0 0 0.0" rpy="0 0 0"/>
+		<mass value="0.33"/>
+		<inertia
+			ixx="0.000784" ixy="0.0" ixz="0.0"
+			iyy="0.000867" iyz="0.0"
+			izz="0.001598"/>
+	</inertial>
+    <visual>
+      <geometry>
+	     <!--- 0.0 0 -0.04  1.5708 3.14159-->
+       <mesh filename="package://myagv_urdf/meshes/base.dae"/>
+      </geometry>
+      <origin xyz = " 0 0 0 " rpy = " 0 0 -3.1415926"/>
+    </visual>
+    <collision>
+      <geometry>
+	     <!--- 0.0 0 -0.04  1.5708 3.14159-->
+        <mesh filename="package://myagv_urdf/meshes/base.dae"/>
+      </geometry>
+      <origin xyz = " 0 0 0 " rpy = " 0 0 -3.1415926"/>
+    </collision>
+
+  </link>
+
+  <link name="link1">
+	<inertial>
+		<origin xyz="0 0 0.0" rpy="0 0 0"/>
+		<mass value="0.12"/>
+		<inertia
+			ixx="0.000148" ixy="0.0" ixz="0.0"
+			iyy="0.000148" iyz="0.0"
+			izz="0.000096"/>
+	</inertial>
+    <visual>
+      <geometry>
+       <mesh filename="package://myagv_urdf/meshes/link1.dae"/>
+      </geometry>
+      <origin xyz = "0 0 -0.132 " rpy = " 0 0 0"/>
+    </visual>
+    <collision>
+      <geometry>
+        <mesh filename="package://myagv_urdf/meshes/link1.dae"/>
+      </geometry>
+      <origin xyz = "0 0 -0.132 " rpy = " 0 0 0"/>
+    </collision>
+  </link>
+
+  <link name="link2">
+	<inertial>
+		<origin xyz="0 0 0.0" rpy="0 0 0"/>
+		<mass value="0.19"/>
+		<inertia
+			ixx="0.000148" ixy="0.0" ixz="0.0"
+			iyy="0.000148" iyz="0.0"
+			izz="0.000096"/>
+	</inertial>
+    <visual>
+      <geometry>    
+       <mesh filename="package://myagv_urdf/meshes/link2.dae"/>
+      </geometry>
+      <origin xyz = "-0.005 0.21 0.002  " rpy = " 1.5708 -3.1415926 0"/>
+
+    </visual>
+    <collision>
+      <geometry>    
+       <mesh filename="package://myagv_urdf/meshes/link2.dae"/>
+      </geometry>
+      <origin xyz = "-0.005  -0.21 0.002  " rpy = " 1.5708 -3.1415926 0"/>
+      
+    </collision>     
+  </link>
+
+  <link name="link3">
+	<inertial>
+		<origin xyz="0 0 0.0" rpy="0 0 0"/>
+		  <mass value="0.16"/>
+		<inertia
+		  ixx="0.000148" ixy="0.0" ixz="0.0"
+		  iyy="0.000148" iyz="0.0"
+		  izz="0.000096"/>
+	</inertial>
+    <visual>
+      <geometry> 
+       <!--- 0.0 0 -0.04 -->
+       <mesh filename="package://myagv_urdf/meshes/link3.dae"/>
+      </geometry>
+      <origin xyz = "-0.09 0.306 0.005 " rpy = "1.5708 3.1415926  0"/>
+      <!-- <origin xyz = "-0.0 0.0 0.000 " rpy = "0 0  0"/> -->
+    </visual>
+    <collision>
+      <geometry>
+       <!--- 0.0 0 -0.04 -->
+       <mesh filename="package://myagv_urdf/meshes/link3.dae"/>
+      </geometry>
+      <origin xyz = "-0.09 0.306 0.005" rpy = "1.5708 3.1415926 0"/>
+    </collision>
+  </link>
+
+  <link name="link4">
+	<inertial>
+		<origin xyz="0 0 0.0" rpy="0 0 0"/>
+	  <mass value="0.124"/>
+	  <inertia
+			ixx="0.000103" ixy="0.0" ixz="0.0"
+			iyy="0.000103" iyz="0.0"
+			izz="0.000096"/>
+  </inertial>
+    <visual>
+      <geometry>
+       <!--- 0.0 0 -0.04 -->
+       <mesh filename="package://myagv_urdf/meshes/link4.dae"/>
+      </geometry>
+      <origin xyz = "0.009 -0.311 -0.228" rpy = " 0 1.5708 1.5708"/>
+    </visual>
+    <collision>
+      <geometry>
+       <!--- 0.0 0 -0.04 -->
+       <mesh filename="package://myagv_urdf/meshes/link4.dae"/>
+      </geometry>
+    <origin xyz = "0.009 -0.311  -0.228" rpy = " 0 1.5708  1.5708"/>
+    </collision>
+  </link>
+
+  <link name="link5">
+	<inertial>
+		<origin xyz="0 0 0.0" rpy="0 0 0"/>
+		  <mass value="0.11"/>
+		<inertia
+		  ixx="0.000103" ixy="0.0" ixz="0.0"
+		  iyy="0.000103" iyz="0.0"
+		  izz="0.000096"/>
+	</inertial>
+    <visual>
+      <geometry>
+       <!--- 0.0 0 -0.04 -->
+       <mesh filename="package://myagv_urdf/meshes/link5.dae"/>
+      </geometry>
+      <origin xyz = "-0.292 -0.318 -0.007" rpy = " 1.5708 0 3.1415926"/>
+    </visual>
+    <collision>
+      <geometry>
+       <mesh filename="package://myagv_urdf/meshes/link5.dae"/>
+      </geometry>
+      <origin xyz = "-0.292 -0.318 -0.007 " rpy = " 1.5708 0 3.1415926"/>
+    </collision>
+  </link>
+
+  <link name="link6">
+	<inertial>
+		<origin xyz="0 0 0.0" rpy="0 0 0"/>
+		  <mass value="0.0739"/>
+		<inertia
+		  ixx="0.00006649" ixy="0.0" ixz="0.0"
+		  iyy="0.00006649" iyz="0.0"
+		  izz="0.000096"/>
+	</inertial>
+    <visual>
+      <geometry>
+       <!--- 0.0 0 -0.04 -->
+       <mesh filename="package://myagv_urdf/meshes/link6.dae"/>
+      </geometry>
+      <origin xyz = "-0.1645 0.0536 -0.211 " rpy = " 0 1.5708 0"/>
+    </visual>
+    <collision>
+      <geometry>
+       <mesh filename="package://myagv_urdf/meshes/link6.dae"/>
+      </geometry>
+      <origin xyz = "-0.1645 0.0536 -0.211 " rpy = " 0 1.5708 0"/>
+    </collision>
+  </link>
+
+  <link name="gripper_base">
+	<inertial>
+		<origin xyz="0 0 0.0" rpy="0 0 0"/>
+		  <mass value="0.07"/>
+		  <inertia
+			ixx="0.000010725" ixy="0.0" ixz="0.0"
+			iyy="0.000014392" iyz="0.0"
+			izz="0.000018517"/>
+	</inertial>
+	<visual>
+		  <geometry>
+			<mesh filename="package://myagv_urdf/meshes/gripper_base.dae"/>
+		  </geometry>
+		  <origin xyz = "0.0 0.0 -0.012" rpy = "0 0 0"/>
+	</visual>
+	<collision>
+		   <geometry>	
+			   <mesh filename="package://myagv_urdf/meshes/gripper_base.dae"/>
+		  </geometry>
+		  <origin xyz = "0.0 0.0 -0.012" rpy = "0 0 0"/>
+	</collision>
+	</link>
+
+	<link name="gripper_left1">
+		<inertial>
+			<origin xyz="0 0 0.0" rpy="0 0 0"/>
+			<mass value="0.007"/>
+			<inertia
+				ixx="1e-6" ixy="0.0" ixz="0.0"
+				iyy="1e-6" iyz="0.0"
+				izz="1e-6"/>
+		</inertial>
+		<visual>
+			<geometry>
+				<mesh filename="package://myagv_urdf/meshes/gripper_left1.dae"/>
+			</geometry>
+			<origin xyz = "0.039 -0.0133 -0.012 " rpy = " 0 0 0"/>
+		</visual>
+		<collision>
+			<geometry>
+				<mesh filename="package://myagv_urdf/meshes/gripper_left1.dae"/>
+			</geometry>
+			<origin xyz = "0.039 -0.0133 -0.012 " rpy = " 0 0 0"/>
+		</collision>
+	</link>
+
+	<link name="gripper_left2">
+		<inertial>
+			<origin xyz="0 0 0.0" rpy="0 0 0"/>
+			<mass value="0.007"/>
+			<inertia
+				ixx="1e-6" ixy="0.0" ixz="0.0"
+				iyy="1e-6" iyz="0.0"
+				izz="1e-6"/>
+		</inertial>
+		<visual>
+			<geometry>
+				<mesh filename="package://myagv_urdf/meshes/gripper_left2.dae"/>
+			</geometry>
+			<origin xyz = "0.005 -0.0195 -0.012 " rpy = " 0 0 0"/>
+		</visual>
+		<collision>
+			<geometry>
+				<mesh filename="package://myagv_urdf/meshes/gripper_left2.dae"/>
+			</geometry>
+				<origin xyz = "0.005 -0.0195 -0.012 " rpy = " 0 0 0"/>
+		</collision>
+	</link>
+
+	<link name="gripper_left3">
+		<inertial>
+			<origin xyz="0 0 0.0" rpy="0 0 0"/>
+			<mass value="0.007"/>
+			<inertia
+				ixx="1e-6" ixy="0.0" ixz="0.0"
+				iyy="1e-6" iyz="0.0"
+				izz="1e-6"/>
+		</inertial>
+		<visual>
+			<geometry>
+				<mesh filename="package://myagv_urdf/meshes/gripper_left3.dae"/>
+			</geometry>
+		<origin xyz = "0.012 0.0025 -0.012 " rpy = " 0 0 0"/>
+		</visual>
+		<collision>
+			<geometry>
+				<mesh filename="package://myagv_urdf/meshes/gripper_left3.dae"/>
+			</geometry>
+			<origin xyz = "0.012 0.0025 -0.012" rpy = " 0 0 0"/>
+		</collision>
+	</link>
+
+	<link name="gripper_right1">
+		<inertial>
+			<origin xyz="0 0 0.0" rpy="0 0 0"/>
+			<mass value="0.007"/>
+			<inertia
+				ixx="1e-6" ixy="0.0" ixz="0.0"
+				iyy="1e-6" iyz="0.0"
+				izz="1e-6"/>
+		</inertial>
+		<visual>
+			<geometry>
+				<mesh filename="package://myagv_urdf/meshes/gripper_right1.dae"/>
+			</geometry>
+			<origin xyz = "-0.039 -0.0133 -0.012 " rpy = " 0 0 0"/>
+		</visual>
+		<collision>
+			<geometry>
+				<mesh filename="package://myagv_urdf/meshes/gripper_right1.dae"/>
+			</geometry>
+			<origin xyz = "-0.039 -0.0133 -0.012 " rpy = " 0 0 0"/>
+		</collision>
+	</link>
+
+	<link name="gripper_right2">
+		<inertial>
+			<origin xyz="0 0 0.0" rpy="0 0 0"/>
+			<mass value="0.007"/>
+			<inertia
+				ixx="1e-6" ixy="0.0" ixz="0.0"
+				iyy="1e-6" iyz="0.0"
+				izz="1e-6"/>
+		</inertial>
+		<visual>
+			<geometry>
+				<mesh filename="package://myagv_urdf/meshes/gripper_right2.dae"/>
+			</geometry>
+			<origin xyz = "-0.005 -0.0195 -0.012 " rpy = " 0 0 0"/>
+		</visual>
+		<collision>
+			<geometry>
+				<mesh filename="package://myagv_urdf/meshes/gripper_right2.dae"/>
+			</geometry>
+			<origin xyz = "-0.005 -0.0195 -0.012 " rpy = " 0 0 0"/>
+		</collision>
+	</link>
+
+	<link name="gripper_right3">
+		<inertial>
+			<origin xyz="0 0 0.0" rpy="0 0 0"/>
+			<mass value="0.007"/>
+			<inertia
+				ixx="1e-6" ixy="0.0" ixz="0.0"
+				iyy="1e-6" iyz="0.0"
+				izz="1e-6"/>
+		</inertial>
+		<visual>
+			<geometry>
+				<mesh filename="package://myagv_urdf/meshes/gripper_right3.dae"/>
+			</geometry>
+			<origin xyz = "-0.012 0.0025 -0.012 " rpy = " 0 0 0"/>
+		</visual>
+		<collision>
+			<geometry>
+				<mesh filename="package://myagv_urdf/meshes/gripper_right3.dae"/>
+			</geometry>
+			<origin xyz = "-0.012 0.0025 -0.012" rpy = " 0 0 0"/>
+		</collision>
+	</link>
+	<link name="camera_link"></link>
+	
+	  
+	<!-- ********** JOINTS ********** -->
+
+  <joint name="joint1_to_base" type="revolute">
+    <axis xyz="0 0 1"/>
+    <limit effort = "${effort}" lower = "-2.792527" upper = "2.792527" velocity = "${velocity}"/>
+    <parent link="base"/>
+    <child link="link1"/>
+    <origin xyz= "0 0 0.1" rpy = "0 0 0"/>  
+  </joint>
+
+  <joint name="joint2_to_joint1" type="revolute">
+    <axis xyz="0 0 1"/>
+    <limit effort = "${effort}" lower = "-1.48353" upper = "1.570796" velocity = "${velocity}"/>
+    <parent link="link1"/>
+    <child link="link2"/>
+    <origin xyz= "0 0 0.038" rpy = " -1.5708 0 0 "/>  
+  </joint>
+
+  <joint name="joint3_to_joint2" type="revolute">
+    <axis xyz=" 0 0 1"/>
+    <limit effort = "${effort}" lower = "-3.14" upper = "0.785398" velocity = "${velocity}"/>
+    <parent link="link2"/>
+    <child link="link3"/>
+    <origin xyz= "0.0 -0.1 0   " rpy = "0 0 0 "/>  
+  </joint>
+
+  <joint name="joint4_to_joint3" type="revolute">
+    <axis xyz=" 0 0 1"/>
+    <limit effort = "${effort}" lower = "-2.792527" upper = "2.792527" velocity = "${velocity}"/>
+    <parent link="link3"/>
+    <child link="link4"/>
+    <origin xyz= "0.108 -0.005  -0.001" rpy = "0 1.5708 0 "/>  
+  </joint>
+
+  <joint name="joint5_to_joint4" type="revolute">
+    <axis xyz="0 0 1"/>
+    <limit effort = "${effort}" lower = "-1.745329" upper = "1.745329" velocity = "${velocity}"/>
+    <parent link="link4"/>
+    <child link="link5"/>
+    <origin xyz= " -0.001 0 0.0" rpy = "  0 -1.5708 0"/>  
+  </joint>
+
+  <joint name="joint6_to_joint5" type="revolute">
+    <axis xyz="0 0 1"/>
+    <limit effort = "${effort}" lower = "-3.14" upper = "3.14" velocity = "${velocity}"/>
+    <parent link="link5"/>
+    <child link="link6"/>
+    <origin xyz= " 0.06 0.00 -0.0" rpy = "  0 1.5708 0 "/>  
+  </joint>
+
+  	<joint name="link6_to_gripper_base" type="fixed">
+		<parent link="link6"/>
+		<child link="gripper_base"/>
+		<origin xyz= "0 0 0.034" rpy = "1.579 0 3.14"/> 
+		
+
+	</joint>
+
+	<joint name="gripper_controller" type="revolute">
+		<axis xyz="0 0 1"/>
+		<limit effort = "${effort}" lower = "-0.7" upper = "0.15" velocity = "${velocity}"/>
+		<parent link="gripper_base"/>
+		<child link="gripper_left3"/>
+		<origin xyz= "-0.012 0.005 0" rpy = "0 0 0"/> 
+        <dynamics damping="2.0" friction="4.0"/>
+	</joint>
+	
+	<!-- The mimic element means this joint will follow the movements of the 
+		gripper_controller joint. 
+	-->
+	<joint name="gripper_base_to_gripper_left2" type="revolute">
+		<axis xyz="0 0 1"/>
+		<limit effort = "${effort}" lower = "-0.8" upper = "0.5" velocity = "${velocity}"/>
+		<parent link="gripper_base"/>
+		<child link="gripper_left2"/>
+		<origin xyz= "-0.005 0.027 0" rpy = "0 0 0"/> 
+		<mimic joint="gripper_controller" multiplier="1.0" offset="0" />
+        <dynamics damping="2.0" friction="4.0"/>
+	</joint>
+	
+	<joint name="gripper_left3_to_gripper_left1" type="revolute">
+		<axis xyz="0 0 1"/>
+		<limit effort = "${effort}" lower = "-0.5" upper = "0.5" velocity = "${velocity}"/>
+		<parent link="gripper_left3"/>
+		<child link="gripper_left1"/>
+		<origin xyz= "-0.027 0.016 0" rpy = "0 0 0"/> 
+		<mimic joint="gripper_controller" multiplier="-1.0" offset="0" />
+        <dynamics damping="2.0" friction="4.0"/>
+	</joint>
+	
+	<joint name="gripper_base_to_gripper_right3" type="revolute">
+		<axis xyz="0 0 1"/>
+		<limit effort = "${effort}" lower = "-0.15" upper = "0.7" velocity = "${velocity}"/>
+		<parent link="gripper_base"/>
+		<child link="gripper_right3"/>
+		<origin xyz= "0.012 0.005 0" rpy = "0 0 0"/> 
+		<mimic joint="gripper_controller" multiplier="-1.0" offset="0" />
+        <dynamics damping="2.0" friction="4.0"/>
+	</joint>
+	
+	<joint name="gripper_base_to_gripper_right2" type="revolute">
+		<axis xyz="0 0 1"/>
+		<limit effort = "${effort}" lower = "-0.5" upper = "0.8" velocity = "${velocity}"/>
+		<parent link="gripper_base"/>
+		<child link="gripper_right2"/>
+		<origin xyz= "0.005 0.027 0" rpy = "0 0 0"/> 
+		<mimic joint="gripper_controller" multiplier="-1.0" offset="0" />
+        <dynamics damping="2.0" friction="4.0"/>
+	</joint>
+	
+	<joint name="gripper_right3_to_gripper_right1" type="revolute">
+		<axis xyz="0 0 1"/>
+		<limit effort = "${effort}" lower = "-0.5" upper = "0.5" velocity = "${velocity}"/>
+		<parent link="gripper_right3"/>
+		<child link="gripper_right1"/>
+		<origin xyz= "0.027 0.016 0" rpy = "0 0 0"/> 
+		<mimic joint="gripper_controller" multiplier="1.0" offset="0" />
+        <dynamics damping="2.0" friction="4.0"/>
+	</joint>
+
+	<joint name="gripper_camera_joint" type="fixed">
+		<origin xyz="0 0.03 -0.05" rpy="-1.57 0 0"/>
+		<parent link="gripper_base"/>
+		<child link="camera_link" />
+	</joint>
+
+	<joint name="arm_to_base" type="fixed">
+        <parent link="base_footprint"/>
+        <child link="base"/>
+        <origin xyz="0.07 0 0.13" rpy="0 0 0"/>
+    </joint>
+	
+  
+</robot>

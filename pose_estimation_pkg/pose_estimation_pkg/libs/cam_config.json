@@ -9,7 +9,7 @@
     "depth_scale": 0.0010000000474974513,
     "clipping_distance_in_meters": 3
   },
-  "D405": {
+  "D405_640": {
     "camera_intrinsic": [
       433.6830139160156,
       433.1543884277344,
@@ -18,5 +18,23 @@
     ],
     "depth_scale": 9.999999747378752e-05,
     "clipping_distance_in_meters": 3
-  }
+  },
+  "D405_848":{
+    "camera_intrinsic":[
+      433.6830139160156,
+      433.1543884277344,
+      426.3874206542969,
+      244.0409698486328
+    ],
+    "depth_scale":0.0010000000474974513,
+    "clipping_distance_in_meters": 3},
+  "D405_848_C2":{
+    "camera_intrinsic":[
+      433.2225036621094,
+      432.7106628417969,
+      424.2512512207031,
+      239.24618530273438
+    ],
+    "depth_scale":9.999999747378752e-05,
+    "clipping_distance_in_meters": 3}
 }
