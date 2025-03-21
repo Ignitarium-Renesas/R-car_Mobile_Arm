@@ -1,0 +1,6 @@
+# Request
+float64 pick_point_x  # Request: floating point number indicating the x coords for pick up.
+---
+# Response
+bool error_code         # Error code (True = success, False = error)
+string error_message     # Description of the error

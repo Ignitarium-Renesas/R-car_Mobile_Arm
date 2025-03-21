@@ -1,12 +1,13 @@
 #from pcd import PointCloud
 from pose_estimation_pkg.libs.pcd import PointCloud
-from pose_estimation_pkg.libs.utils.utils import select_device
+from pose_estimation_pkg.libs.icp import IcpRegistration
+from pose_estimation_pkg.libs.utils.utils import select_device, get_leftmost_bbox
 
 
 from pose_estimation_pkg.libs.utils.display_utils import put_texts,get_random_colors
 from pose_estimation_pkg.libs.detection import Detection
 from ament_index_python.packages import get_package_share_directory
-from pose_estimation_pkg.libs.utils.json_utils import read_json,write_json
+from pose_estimation_pkg.libs.utils.json_utils import read_json
 
 
 import cv2
@@ -14,12 +15,11 @@ import os
 import open3d as o3d
 import copy
 import numpy as np
-import random
-import time
+
 
 class MainApp:
     
-    def __init__(self,object_name, device="auto",cam_name="D405",inference = False,display=False):
+    def __init__(self,object_name, device="auto",cam_name="D405_848_C2",inference = False,display=False):
         self.display = display
         self.object_name = object_name
         self.cam_name = cam_name    
@@ -30,16 +30,18 @@ class MainApp:
         self.inference = inference
         self.debug = False
         self.ratio = 0.15
+        self.classes = ["white_connector", "blue_connector"]
         self.center_point = [0.0, 0.0, 0.0]
         self.has_detected = False
+        self.detection_count = 0
+        self.no_detection_count = 0
 
         self.device = select_device(device)
         self.cam_config = self.get_cam_config(cam_name=self.cam_name)
-        self.set_paths()
         self.load_instances()
 
 
-    def get_cam_config(self,cam_name="D405",config_path="cam_config.json"):
+    def get_cam_config(self,cam_name="D405_848_C2",config_path="cam_config.json"):
         config_path = f"{self.package_path}/libs/{config_path}"
         config = read_json(config_path)
         config = config[cam_name]
@@ -48,8 +50,6 @@ class MainApp:
 
     def set_paths(self,):
         if not self.inference:
-            self.mesh_dir = f"{self.package_path}/libs/datasets/{self.object_name}/mesh"
-            os.makedirs(self.mesh_dir, exist_ok=True)
             self.train_path = f"{self.package_path}/libs/datasets/{self.object_name}/data/train"
             os.makedirs(self.train_path, exist_ok=True)
             self.val_path = f"{self.package_path}/libs/datasets/{self.object_name}/data/val"
@@ -57,90 +57,169 @@ class MainApp:
         
 
     def load_instances(self):
-        #added
-        # self.camreader = CamReader()
-        #
         self.pointcloud = PointCloud(self.cam_config["camera_intrinsic"],depth_scale=self.cam_config["depth_scale"],
                                      clipping_distance_in_meters=self.cam_config["clipping_distance_in_meters"], display=False)
+        
+        self.icp = IcpRegistration(pointcloud=self.pointcloud,package_path=self.package_path)
 
-        mesh_name = [mesh_name for mesh_name in os.listdir(self.mesh_dir) if mesh_name.endswith(".obj")][0]
-        mesh_path = os.path.join(self.mesh_dir, mesh_name)
-        self.mesh = self.pointcloud.mesh2pcd(mesh_path=mesh_path)
 
-        self.detect = Detection(detection_type="yolo",device=self.device)
-        self.detect.set_object(object_name=self.object_name,path=self.package_path)
+        weight_path = f"{self.package_path}/libs/weights/detection/yolo/combined_weights/yolo_weights.pt"
+        self.model = Detection(detection_type="yolo",device=self.device)
+        self.model.set_object("combined_connectors",weight_path)
 
         #visualisation
         if self.display:
             self.vis_pcd = o3d.geometry.PointCloud()
-
             self.vis = o3d.visualization.Visualizer()
             self.vis.create_window()
             self.frame_count = 0
+    
 
+    def get_detection(self, rgb_image,object_name):
+        annotations = self.model.infer(data=rgb_image)
+        bbox = get_leftmost_bbox(annotations=annotations,object_name=object_name)
+        return bbox
 
-    def cam_infer(self,color_image=None, depth_image=None):
-        #added
-        # color_image, depth_image = self.camreader.next_frame()
-        # color_image = cv2.cvtColor(color_image,cv2.COLOR_RGB2BGR)  
-        # print(color_image)
-        #
-
-        self.has_detected = False
-        rgb_image = color_image.copy()
+    def cam_infer(self,color_image=None, depth_image=None,object_name="white_connector",Dof_6d=False,save_image=False,white_neg_x_pick_offset=0.30,
+                  white_pos_x_pick_offset=0.10,blue_neg_x_pick_offset=0.20,blue_pos_x_pick_offset=0.0):
         
-        start_time = time.time()
-        detection = self.detect.infer(data=rgb_image)
-        end_time = time.time() - start_time
-        #print("Time for Detection:",end_time)
+        if Dof_6d:
+            center_point = self.cam_6d_infer(color_image=color_image, depth_image=depth_image)
+        else:
+            center_point = self.cam_3d_infer(color_image=color_image, depth_image=depth_image,
+                              object_name=object_name, save_image=save_image, white_neg_x_pick_offset=white_neg_x_pick_offset,
+                              white_pos_x_pick_offset=white_pos_x_pick_offset,blue_neg_x_pick_offset=blue_neg_x_pick_offset,
+                              blue_pos_x_pick_offset=blue_pos_x_pick_offset)
+        return center_point
+    
 
-        bbox = detection["bbox"].squeeze()
+    def cam_6d_infer(self,color_image, depth_image):
+        if not hasattr(self, 'detection_count'):
+            self.detection_count = 0
+        if not hasattr(self, 'no_detection_count'):
+            self.no_detection_count = 0
+        self.center_point = None
+        rgb_image = color_image.copy()
+        self.has_detected = False
+
+        self.center_point, self.has_detected = self.icp.get_pose(target_image=rgb_image, target_depth = depth_image)
+        print(f"pose: {self.center_point}")
+
+        return self.center_point, color_image
+
+    
+    def cam_3d_infer(self, color_image, depth_image,object_name,save_image,white_neg_x_pick_offset,white_pos_x_pick_offset,blue_neg_x_pick_offset,blue_pos_x_pick_offset):
+        if not hasattr(self, 'detection_count'):
+            self.detection_count = 0
+        if not hasattr(self, 'no_detection_count'):
+            self.no_detection_count = 0
+        self.center_point = None
+        rgb_image = color_image.copy()
+        #print("Inside CamInfer")
+        # Perform detection
+        bbox = self.get_detection(rgb_image=rgb_image, object_name=object_name)
+
         org_bbox = copy.deepcopy(bbox)
+        self.has_detected = False
         if len(org_bbox) == 4:
-            assert len(org_bbox) == 4, f"org_bbox must have 4 elements, but got {len(org_bbox)}: {org_bbox}"
-            
-            bbox_patch = self.get_bbox_patch(bbox=bbox)
-            bbox_contour = np.array(bbox_patch, dtype=np.int32).reshape((-1, 1, 2))
-
-            start_time = time.time()
-            full_pcd = self.pointcloud.get_point_cloud(color_frame=color_image.copy(), depth_frame=depth_image.copy())
-            pcd = self.pointcloud.crop_pcd(roi=bbox_contour, image_data=color_image.copy(), depth_data=depth_image.copy(),show_flag=False)
-
-            thresh_pcd, center_point = self.pointcloud.filter_point_cloud(copy.deepcopy(pcd),display=False) 
-            end_time = time.time() - start_time
-            #print("Time for Pose Estimation:",end_time)
-
+            self.has_detected = True
+            org_bbox = [int(coord) for coord in org_bbox]
+            cv2.rectangle(rgb_image, (org_bbox[0], org_bbox[1]), (org_bbox[2], org_bbox[3]), (0, 255, 0), 3)
+            cv2.imwrite("current_detection.jpg", rgb_image)
+            print("object detected!")
+            # Process point cloud data
+            pcd = self.pointcloud.crop_pcd(
+                roi=org_bbox,
+                image_data=color_image.copy(),
+                depth_data=depth_image.copy(),
+                show_flag=False,
+            )
+            thresh_pcd, center_point = self.pointcloud.filter_point_cloud(pcd, display=False)
+            # center_point = self.shift_center_by_offset(center_point,object_name,white_neg_x_pick_offset,white_pos_x_pick_offset,blue_neg_x_pick_offset,blue_pos_x_pick_offset)
             if isinstance(center_point, np.ndarray):
                 self.center_point = center_point
-                self.has_detected = True
 
-            mesh_translated,xy_z_diff = self.pointcloud.translate_pcd(ref_pcd = copy.deepcopy(self.mesh), object_pcd=thresh_pcd) 
+                # Update detection count
+                """ self.detection_count += 1
+                self.no_detection_count = 0
 
-            #bbox display
-            org_bbox = [int(coord) for coord in org_bbox]
-            cv2.rectangle(rgb_image, (org_bbox[0], org_bbox[1]), (org_bbox[2], org_bbox[3]),(0,255,0),3)    
+                if self.detection_count >= 2:
+                    self.has_detected = True
+                    self.detection_count = 2
+                    #print("Detection found at: ", getattr(self, "center_point", None))
+            else:
+                # Reset detection count and increment no-detection count
+                self.no_detection_count += 1
+                self.detection_count = 0
+
+                if self.no_detection_count >= 100:
+                    self.has_detected = False
+                    self.no_detection_count = 100 """
+
+            # Visualization
             if self.display:
-                cv2.imshow(self.window_name, rgb_image)
-                key = cv2.waitKey(2) & 0xff
+                full_pcd = self.pointcloud.get_point_cloud(
+                    color_frame=color_image.copy(),
+                    depth_frame=depth_image.copy(),
+                )
+                draw_pcd = full_pcd
 
-                mesh_translated.paint_uniform_color([0, 0, 1])
-                full_pcd.scale(15000000, center=xy_z_diff)
-                # ref_pcd.scale(1/1000,ref_pcd.get_center())
-                draw_pcd = full_pcd + mesh_translated
-                    
                 self.vis_pcd.points = draw_pcd.points
                 self.vis_pcd.colors = draw_pcd.colors
                 flip_transform = [[1, 0, 0, 0], [0, -1, 0, 0], [0, 0, -1, 0], [0, 0, 0, 1]]
                 self.vis_pcd.transform(flip_transform)
+
                 if self.frame_count == 0:
                     self.vis.add_geometry(self.vis_pcd)
+
                 self.vis.update_geometry(self.vis_pcd)
                 self.vis.poll_events()
                 self.vis.update_renderer()
                 self.frame_count += 1
-                
-        return self.center_point, cv2.cvtColor(rgb_image.copy(),cv2.COLOR_BGR2RGB) 
-    
+
+        """ else:
+            # Handle case with no valid bbox
+            self.no_detection_count += 1
+            self.detection_count = 0
+
+            if self.no_detection_count >= 100:
+                self.has_detected = False
+                self.no_detection_count = 100 """
+
+        print(f"pose: {self.center_point}")
+
+        if save_image:
+            self.save_image(color_image)
+        return getattr(self, "center_point", None), cv2.cvtColor(rgb_image.copy(), cv2.COLOR_BGR2RGB)
+
+
+    def shift_center_by_offset(self, center_point, object_name,white_neg_x_pick_offset,white_pos_x_pick_offset,blue_neg_x_pick_offset,blue_pos_x_pick_offset):
+
+        if not isinstance(center_point, np.ndarray):
+            return None
+        x, y, z = center_point.tolist()
+        if x < 0:
+            if object_name == "white_connector":
+                x += (x*white_neg_x_pick_offset)
+            else:
+                x += (x*blue_neg_x_pick_offset)
+        elif x > 0:
+            if object_name == "white_connector":
+                x -= (x*white_pos_x_pick_offset)
+            else:
+                x -= (x*blue_pos_x_pick_offset)
+        
+        # y += (y*0.3)
+        return np.array([x, y, z])
+
+
+
+    def save_image(self, image):
+        save_idx = len(os.listdir(self.train_path))
+        save_path = os.path.join(self.train_path, f"live_capture_{save_idx}.jpg")        
+        cv2.imwrite(save_path,  image)
+        print(f"Image saved in {save_path}")
+
 
     def get_bbox_patch(self,bbox):
         y_diff = bbox[3] - bbox[1]
@@ -216,7 +295,7 @@ class MainApp:
                     # thresholded_points = points[(points[:, 2] <= 30) & (points[:, 2]>=5)]
                     
                     median = np.median(thresholded_points, axis=0)
-                    #print("Centroid point",median)
+                    
                     o3d.visualization.draw_geometries(
                             [pcd],
                             window_name="Visualize",

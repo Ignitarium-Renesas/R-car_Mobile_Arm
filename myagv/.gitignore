@@ -1,0 +1,58 @@
+# ROS / ROS 2 build artifacts
+build/
+devel/
+install/
+log/
+
+# ROS cache files
+*.pyc
+*.pyo
+*.swp
+*.swo
+*.bak
+*.~*
+
+# ROS launch file logs
+*.log
+*.bag
+*.db3
+
+# IDE specific files
+.vscode/
+.idea/
+*.iml
+
+# Python virtual environments
+env/
+venv/
+__pycache__/
+
+# CMake files
+CMakeCache.txt
+CMakeFiles/
+
+# Temporary files
+*.tmp
+*.temp
+*.~*
+.DS_Store
+
+# ROS 2 colcon workspace files
+.colcon/
+colcon.log
+colcon_meta/
+
+# Custom configuration
+*.yaml~
+*.xml~
+*.launch~
+
+# Debugging and profiling files
+*.profraw
+*.gcda
+*.gcno
+
+# Additional OS-specific files
+Thumbs.db
+.DS_Store
+

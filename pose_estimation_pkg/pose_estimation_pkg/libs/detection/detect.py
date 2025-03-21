@@ -44,7 +44,7 @@ class Detection:
         self.device = device
         self.colors = ansi_colors()
 
-    def set_object(self, object_name,path,weight_path=None):
+    def set_object(self, object_name,weight_path):
         self.object_name = object_name
         if self.detection_type == "yolo":
             from .yolov8.yolo_infer import YOLOInference
@@ -57,7 +57,7 @@ class Detection:
                 + " Check help (-h) for more details"
                 + self.colors["RESET"]
             )
-        self.model.set_object(object_name=object_name,root_path=path,weight_path=weight_path)
+        self.model.set_object(object_name=object_name,weight_path=weight_path)
 
     def train(self):
         self.model.train()

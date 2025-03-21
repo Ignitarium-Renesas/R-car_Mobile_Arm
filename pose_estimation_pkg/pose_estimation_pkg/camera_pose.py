@@ -13,7 +13,7 @@ from mecharm_interfaces.msg import (MecharmAngles,
                                     MecharmCameraPose
                                     )
 
-from pose_estimation_pkg.libs.main import MainApp
+from pose_estimation_pkg.libs.main import MainApp 
 from pose_estimation_pkg.libs.recieve import Consumer
 
 import cv2
@@ -29,11 +29,11 @@ class CamPose(Node):
         
         # ROS 2 subscriptions
         self.image_sub = self.create_subscription(
-            Image, '/camera/camera/color/image_raw', self.image_callback, 10)
+            Image, '/camera/camera/color/image_raw', self.image_callback, 1)
         self.depth_sub = self.create_subscription(
-            Image, '/camera/camera/depth/image_rect_raw', self.depth_callback, 10)
+            Image, '/camera/camera/depth/image_rect_raw', self.depth_callback, 1)
         self.camera_info_sub = self.create_subscription(
-            CameraInfo, '/camera/camera/color/camera_info', self.camera_info_callback, 10)
+            CameraInfo, '/camera/camera/color/camera_info', self.camera_info_callback, 1)
         self.camera_pose_pub = self.create_publisher(msg_type=MecharmCameraPose,
                                                      topic="camera_pose",
                                                      qos_profile=5
@@ -59,17 +59,17 @@ class CamPose(Node):
         self.pose.pose.ry = 0.01
         self.pose.pose.rz = 90.0
         self.pose.has_detection = False
+        self.prv_detection = False
         self.display = False
         self.pose_3d = MainApp(object_name="white_connector",display=self.display)
-        self.cam_data = Consumer()
+        # self.cam_data = Consumer()
 
     # def socket_callback(self):
     #      self.color_image, self.depth_image = self.cam_data.decode_image()
 
 
     def get_camera_pose(self):
-        self.color_image, self.depth_image = self.cam_data.next_frame()
-        if self.color_image is None and self.depth_image is None:
+        if self.color_image is None or self.depth_image is None:
             return[0.0, 0.0, 0.0]
         camera_pose, rgb_img = self.pose_3d.cam_infer(self.color_image, self.depth_image)
         
@@ -86,6 +86,9 @@ class CamPose(Node):
         self.pose.pose.y = cam_pose[1]
         self.pose.pose.z = cam_pose[2]
         self.pose.has_detection = self.pose_3d.has_detected
+        if self.pose.has_detection != self.prv_detection:
+            self.get_logger().info(f"Value changed: {self.pose.has_detection} , cam_pose: {cam_pose}" )
+            self.prv_detection = self.pose.has_detection
         self.camera_pose_pub.publish(self.pose)
     
     def camera_info_callback(self, msg):
@@ -96,17 +99,19 @@ class CamPose(Node):
             'ppx': msg.k[2],
             'ppy': msg.k[5]
         }
-
+        
     def image_callback(self, msg):
         # Convert ROS Image message to OpenCV image
         self.color_image = self.bridge.imgmsg_to_cv2(msg, "bgr8")
+        
 
     def depth_callback(self, msg):
         # Convert ROS Image message to OpenCV depth image
         self.depth_image = self.bridge.imgmsg_to_cv2(msg, "16UC1")
 
     def stop_vis(self):
-        self.pose_3d.vis.destroy_window()
+        #self.pose_3d.vis.destroy_window()
+        pass
         
 
 def main(args=None):
@@ -120,7 +125,7 @@ def main(args=None):
         pass
     finally:
         cam_executor.shutdown()
-        cam_node.cam_data.close()
+        # cam_node.cam_data.close()
         if cam_node.display:
             cam_node.stop_vis()
         cam_node.destroy_node()

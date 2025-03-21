@@ -1,0 +1,6 @@
+# Request
+
+---
+# Response
+mecharm_interfaces/MecharmCameraPose pose     #Camera Pose Data   
+sensor_msgs/Image detection_img    #Processed Image

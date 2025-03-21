@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="https://fonts.googleapis.com/css2?family=Aldrich&family=Inter:wght@400;700&display=swap"
+        rel="stylesheet">
+    <style>
+        body {
+            background-image: url('project-rover-background.png');
+        }
+
+        .highlight {
+            background-color: #84899D !important;
+            border: solid 1px;
+            border-color: #646A83;
+        }
+
+        .loading {
+            display: none;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 16px;
+            color: #6D4325;
+        }
+
+        button:disabled {
+            background-color: #D3B8A5 !important;
+            color: white !important;
+            cursor: not-allowed !important;
+        }
+
+        button:focus {
+            outline: none;
+        }
+
+        .tooltip {
+            display: none;
+            position: absolute;
+            background-color: #333;
+            color: #fff;
+            padding: 5px;
+            border-radius: 5px;
+        }
+
+        .container {
+            padding: 50px
+        }
+
+        .image-container {
+            height: 460px;
+        }
+
+        @media (min-width: 1284px) {
+            .image-container {
+                height: 760px;
+            }
+        }
+    </style>
+</head>
+
+<body style="height: 100vh; overflow-y: hidden; width:100%;
+height:100%;
+margin:0; position: relative;">
+    <header style="width: 100%">
+        <div style="width: 100%">
+            <img src="project-rover-ignitarium-logo.png" alt="Ignitarium logo"
+                style="object-fit: cover; height: auto; width: 100%;">
+        </div>
+    </header>
+    <main>
+        <section style="padding: 0px 40px 0px 40px">
+            <div style="display: flex; gap: 30px; flex-direction: column">
+                <div style="display: flex; align-items: center; justify-content: space-around;">
+                    <div style="display: flex; align-items: center; flex-direction: column;">
+                        <img src="project-rover-1.png" alt="Rover" style="
+                        max-width: 100%;
+                        object-fit: cover;" class="image-container">
+                        <div
+                            style="display: flex; align-items: center; justify-content: flex-start; padding: 0px 80px 0px 80px;">
+                            <div style="
+                        font-family: 'Aldrich';
+                        font-weight: 400;
+                        line-height: 9px;
+                        font-size: 20px; display: flex; flex-direction: column;
+                        color: #333A48">
+                                <p style="margin: 0px 0px 10px 0px">
+                                    Smart. Autonomous. Unstoppable.
+                                </p>
+                                <p>
+                                    Explore the Future with Our Next-Gen Mobile Rover.
+                                </p>
+                            </div>
+
+                        </div>
+                    </div>
+                    <div
+                        style="display: flex; flex-direction: column; gap: 20px; align-items: center; justify-content: center;">
+                        <div>
+                            <div id="colorContainer"
+                                style="display: flex; align-items: center; justify-content: center; gap: 20px">
+                                <div id="blue-object" style=" background-color: #CECFD24D;
+                                padding: 20px;
+                                border-radius: 10px;
+                                width: 120px;
+                                height: 120px;
+                                text-align: center;
+                                cursor: pointer;">
+                                    <img src="project-rover-6.png" alt="Blue object" style="flex: 1 1 50%;
+                                    max-width: 100%;
+                                    height: auto;
+                                    transform: rotate(-20deg); ">
+                                </div>
+                                <div id="white-object" style=" background-color: #CECFD24D;
+                                    padding: 20px;
+                                    border-radius: 10px;
+                                    width: 120px;
+                                    height: 120px;
+                                    text-align: center;
+                                    cursor: pointer;">
+                                    <img src="project-rover-5.png" alt="White object" style="flex: 1 1 50%;
+                                        max-width: 100%;
+                                        height: auto; object-fit: cover;
+                                        transform: rotate(-20deg); ">
+                                </div>
+                            </div>
+                        </div>
+                        <div style="display: flex; align-items: center; justify-content: center; gap:8px;">
+                            <div>
+                                <button id="sendButton" style="background-color: #EDB58B;
+                                padding: 8px;
+                                border: 2px solid #C49169;
+                                border-radius: 25px;
+                                width: 150px;
+                                height: 50px;
+                                text-align: center;
+                                box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+                                font-family: 'Aldrich';
+                                font-size: 16px;
+                                color: #6D4325;
+                                cursor: pointer;
+                                position: relative;">
+                                    <span id="send-button">Start Demo</span>
+                                    <span class="loading" id="loadingIndicator">Loading...</span>
+                                </button>
+                                <div id="tooltip" class="tooltip">Please select a connector type!</div>
+                            </div>
+                        </div>
+
+                        <div id="selectedObjectDisplay"
+                            style="display: flex; align-self: flex-start; font-family: Aldrich; font-size: 16px;">
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+        <section style="position:absolute; bottom: 0px; right: 5px;">
+            <div id="release-motors" style="
+                            border: none;
+                            padding: 8px;
+                            cursor: pointer;">
+                <img src="project-rover-release-motors.png" alt="Button Image" width="20" height="20" style="
+                                max-width: 100%; object-fit: cover; height: auto;">
+            </div>
+        </section>
+    </main>
+
+    <script>
+        let selectedObject = '';
+
+        let previousSelectedObject = null;
+
+        document.getElementById('colorContainer').addEventListener('click', function (event) {
+            const targetDiv = event.target.closest('#blue-object, #white-object');
+            if (targetDiv) {
+                selectedObject = targetDiv.id;
+
+                // Check if the selected object is the same as the previous one
+                if (selectedObject === previousSelectedObject) {
+                    return; // Do not make the API request
+                }
+
+                // Update the previous selected object
+                previousSelectedObject = selectedObject;
+
+                // Remove highlight from previously selected object
+                document.querySelectorAll('.highlight').forEach(el => el.classList.remove('highlight'));
+                selectedObjectDisplay.style.display = 'block';
+                selectedObjectDisplay.textContent = "Selected connector - " + (selectedObject === "white-object" ? "White Connector" : "Blue Connector");
+
+                // Add highlight to the clicked object
+                targetDiv.classList.add('highlight');
+
+                // Api call based on selected object
+                fetch('/run-python', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ selectedObject })
+
+                })
+                    .then(response => response.json())
+                    .then(data => {
+                        console.log(data);
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        selectedObjectDisplay.style.display = 'none';
+                        selectedObjectDisplay.textContent = "Selected connector-" + selectedObject;
+                    }
+                    );
+            }
+        });
+
+        document.getElementById('sendButton').addEventListener('click', function () {
+            if (selectedObject) {
+                console.log('Sending selected object:', selectedObject);
+
+                selectedObject = "pick-demo";
+
+                // Disable the button
+                // const button = document.getElementById('sendButton');
+                // button.disabled = true;
+                // setTimeout(() => {
+                selectedObjectDisplay.style.display = 'block';
+                selectedObjectDisplay.textContent = "Starting demo to pick the connector...";
+                // }, 5000)
+
+                // Api call
+                fetch('/run-python', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ selectedObject })
+                })
+                    .then(response => response.json())
+                    .then(data => {
+                        console.log('Success:', data);
+
+                        // Re-enable the button
+                        // const button = document.getElementById('sendButton');
+                        // button.disabled = false;
+                        setTimeout(() => {
+                            selectedObjectDisplay.style.display = 'none';
+                            selectedObjectDisplay.textContent = "";
+                        }, 5000)
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+
+                        // Re-enable the button
+                        // const button = document.getElementById('sendButton');
+                        // button.disabled = false;
+
+                        setTimeout(() => {
+                            selectedObjectDisplay.style.display = 'none';
+                            selectedObjectDisplay.textContent = "";
+                        }, 5000)
+                    }
+                    );
+            } else {
+                console.log('No object selected');
+            }
+        });
+
+        const tooltip = document.getElementById('tooltip');
+
+        const selectedObjectDisplay = document.getElementById('selectedObjectDisplay');
+
+        document.getElementById('sendButton').addEventListener('mouseover', function (event) {
+            if (!selectedObject) {
+                tooltip.style.display = 'block';
+                const buttonRect = sendButton.getBoundingClientRect();
+                tooltip.style.left = buttonRect.left + 'px';
+                tooltip.style.top = (buttonRect.top - tooltip.offsetHeight) + 'px';
+            }
+        });
+
+        document.getElementById('sendButton').addEventListener('mouseout', function () {
+            tooltip.style.display = 'none';
+        });
+
+        document.getElementById('release-motors').addEventListener('click', function () {
+            selectedObject = "release-motors";
+            if (selectedObject) {
+                console.log('Sending selected object:', selectedObject);
+                // Disable the button
+                // const button = document.getElementById('release-motors');
+                // button.disabled = true;
+                // selectedObjectDisplay.style.display = 'block';
+                // selectedObjectDisplay.textContent = "Releasing motors...";
+
+                // Api call
+                fetch('/run-python', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ selectedObject })
+                })
+                    .then(response => response.json())
+                    .then(data => {
+                        console.log('Success:', data);
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                    }
+                    );
+            } else {
+                console.log('No object selected');
+            }
+        });
+    </script>
+</body>
+
+</html>

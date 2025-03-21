@@ -620,3 +620,156 @@ def put_text_non_overlap(
         cv2.LINE_AA,
     )
     return image
+
+def get_leftmost_bbox(annotations,object_name):
+    bboxes = []
+    x_coords = []
+
+    for annotation in annotations:
+        for annots in annotation:
+            if (len(annots) != 0) and (annots["name"] == object_name):
+                bbox = annots["bbox"]
+                bboxes.append(bbox)
+                x_coords.append(bbox[0])
+
+    if len(x_coords) != 0:
+        min_x = min(x_coords)
+        min_x_idx = x_coords.index(min_x)
+        return bboxes[min_x_idx]
+    return []
+
+
+def get_slope(bbox):
+    bbox = np.array(bbox, dtype=np.float64)
+    
+    if np.any(np.isinf(bbox)) or np.any(np.isnan(bbox)):
+        raise ValueError("Error: bbox contains inf or NaN values!")
+    
+    denominator = bbox[2] - bbox[0]
+    if abs(denominator) < 1e-10:  # Small threshold to prevent division by zero
+        slope = float('inf')  # Or assign a default value
+    else:
+        slope = (bbox[3] - bbox[1]) / denominator
+
+    # slope = (bbox[3] - bbox[1]) / (bbox[2] - bbox[0])
+    return slope
+
+# Function to compute angle between two lines
+# def compute_angle(m1, m2):
+#     theta_rad = np.arctan((m2 - m1) / (1 + m1 * m2))  # Signed angle
+#     theta_deg = np.degrees(theta_rad)  # Convert to degrees
+#     return theta_rad, theta_deg
+
+# def compute_angle(m1, m2):
+#     theta_rad = np.arctan((m2 - m1) / (1 + m1 * m2))  # Signed angle
+#     # theta_rad = np.arctan(abs(m1))
+#     theta_deg = np.degrees(theta_rad)  # Convert to degrees
+#     return theta_rad, theta_deg
+
+def compute_angle(m1, m2):
+    # If one of the lines is vertical
+    if np.isinf(m1):  # First line is vertical
+        theta_rad = np.arctan(abs(m2))
+    elif np.isinf(m2):  # Second line is vertical
+        theta_rad = np.arctan(abs(m1))
+    else:
+        # Standard angle formula
+        theta_rad = np.arctan(abs((m2 - m1) / (1 + m1 * m2)))
+
+    theta_deg = np.degrees(theta_rad)  # Convert to degrees
+    return theta_rad, theta_deg
+
+
+def apply_rotation(pcd, theta_rad):
+    # Rotation matrix for 2D (XY plane)
+    R_xy = np.array([
+        [np.cos(theta_rad), -np.sin(theta_rad), 0],
+        [np.sin(theta_rad),  np.cos(theta_rad), 0],
+        [0,                 0,                 1]
+    ])
+    
+    # Apply rotation to point cloud
+    pcd.rotate(R_xy, center=(0,0,0))
+    return pcd, R_xy
+
+def get_bounding_rectangle(cntr):
+    x, y, w, h = cv2.boundingRect(cntr)
+    
+    # # Compute corners
+    # top_left = (x, y)
+    # bottom_right = (x + w, y + h)
+
+    return (x, y, x + w, y + h)
+
+def get_min_rectangle(cntr):
+    rect = cv2.minAreaRect(cntr)
+    box = cv2.boxPoints(rect)
+    box = np.int8(box)
+    print(box)
+    box = [box[0][0], box[0][1], box[2][0], box[2][1]]
+    # print(box)
+    return box
+    # cv2.drawContours(img,[box],0,(0,0,255),2)
+
+
+def get_slope_from_cntr(cntr):
+    [vx, vy, x0, y0] = cv2.fitLine(cntr, cv2.DIST_L2, 0, 0.01, 0.01)
+
+    # Compute the slope
+    slope = vy / vx  # m = vy / vx
+    print(slope[0])
+    return slope[0]
+
+
+def get_rotation_matrix_from_transformation(T):
+    """
+    Extracts the 3x3 rotation matrix from a 4x4 transformation matrix.
+
+    Parameters:
+    - T: (4x4 numpy array) Transformation matrix
+
+    Returns:
+    - R: (3x3 numpy array) Rotation matrix
+    """
+    return T[:3, :3]  # Extract the upper-left 3×3 matrix
+
+
+def combine_icp_rotations(R1, R2):
+    """
+    Combines two 3x3 rotation matrices from ICP transformations.
+
+    Parameters:
+    - R1: (3x3 numpy array) First rotation matrix
+    - R2: (3x3 numpy array) Second rotation matrix
+
+    Returns:
+    - R_combined: (3x3 numpy array) Combined rotation matrix
+    """
+    # Matrix multiplication to combine rotations
+    R_combined = R2 @ R1  # Equivalent to np.dot(R2, R1)
+    return R_combined
+
+
+def rotation_matrix_to_euler(R):
+    """
+    Converts a 3x3 rotation matrix into roll, pitch, and yaw (Euler angles).
+
+    Parameters:
+    - R: (3x3 numpy array) Rotation matrix
+
+    Returns:
+    - roll (float): Rotation around X-axis (degrees)
+    - pitch (float): Rotation around Y-axis (degrees)
+    - yaw (float): Rotation around Z-axis (degrees)
+    """
+    # Extract angles
+    yaw = np.arctan2(R[1, 0], R[0, 0])   # Yaw (Z-axis)
+    pitch = np.arcsin(-R[2, 0])          # Pitch (Y-axis)
+    roll = np.arctan2(R[2, 1], R[2, 2])  # Roll (X-axis)
+
+    # Convert to degrees
+    yaw = np.degrees(yaw)
+    pitch = np.degrees(pitch)
+    roll = np.degrees(roll)
+
+    return roll, pitch, yaw

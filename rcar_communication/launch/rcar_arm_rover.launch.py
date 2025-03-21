@@ -66,8 +66,8 @@ def generate_launch_description():
     
     pick_place_node = Node(
         package="rcar_communication",
-        executable="rcar_communication_node",
-        name="rcar_communication_node",
+        executable="pick_obj_srv",
+        name="pick_obj_srv",
         output="screen"
     )
     res.append(pick_place_node)

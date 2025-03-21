@@ -1,0 +1,9 @@
+# Request
+mecharm_interfaces/MecharmCoords base_pose  # Request: List of floating-point numbers
+---
+# Response
+bool error_code         # Error code (True = success, False = error)
+bool is_pose_reachable  
+string error_message     # Description of the error
+bool do_base_correction
+float32[] new_goal_coords

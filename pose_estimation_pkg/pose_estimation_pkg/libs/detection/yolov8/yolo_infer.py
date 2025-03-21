@@ -21,6 +21,10 @@ import argparse
 import torch
 import cv2
 import os
+import logging
+import numpy as np
+
+logging.disable(logging.CRITICAL)
 
 
 class YOLOInference:
@@ -43,10 +47,9 @@ class YOLOInference:
         Initialize the YOLOInference object.
         """
         self.device = device
+        self.vis = False
 
-    def set_object(self, object_name, root_path, weight_path=None):
-        if weight_path is None:
-            weight_path = f"{root_path}/libs/weights/detection/yolo/{object_name}/yolo_weights.pt"
+    def set_object(self, object_name, weight_path=None):
         assert os.path.exists(weight_path), (
             f"Weights are not available for {object_name}"
             + " Follow README.md/Yolo training steps to train and try again"
@@ -64,15 +67,59 @@ class YOLOInference:
         """
         annotations = {}
         results = self.model.predict(
-            source=data, iou=0.75, conf=0.5, device=self.device
+            source=data, iou=0.75, conf=0.5, device=self.device,
         )  # check Yolov8 documentation for more relevent parameters
         ##
         # for result in results:
         #     result.show()
-        boxes = results[0].boxes.xyxy.cpu().numpy()  # (x1, y1, x2, y2)
-        annotations["bbox"] = boxes
-        annotations["bbox_conf"] = results[0].boxes.conf
+
+        # boxes = results[0].boxes.xyxy.cpu().numpy()  # (x1, y1, x2, y2)
+        # annotations["bbox"] = boxes
+        # annotations["bbox_conf"] = results[0].boxes.conf
+        results = self.get_contours(results)
+        return results
+    
+    def get_contours(self,results_list):
+        annotations = []
+        # contours = []
+        for results in results_list:
+            # Extract masks, classes, names, and confidences
+            inter_annotations = []
+            bboxes = results.boxes
+            if self.vis:
+                results.show()
+                                
+            if bboxes == None:
+                annotation = {}
+                annotation["name"] = None
+                annotation["confidence"] = None
+                annotation["bbox"] = []
+                print(annotation["name"])
+                inter_annotations.append(annotation)
+                if len(results_list) == 1:
+                    annotations.append(inter_annotations)
+                continue
+            classes = results.boxes.cls.tolist() 
+            names = results.names
+            confidences = results.boxes.conf.tolist() 
+            bboxes = results.boxes.xyxy.tolist() 
+            # Iterate through the results and draw contours
+            for cls, conf,bbox in zip(classes, confidences, bboxes):
+                annotation = {} 
+                class_id = int(cls)
+                name = names[class_id]
+                confidence = conf
+                # Create and reshape array for points
+                
+                annotation["name"] = name
+                annotation["confidence"] = confidence
+                annotation["bbox"] = bbox
+                print(annotation["name"])
+                inter_annotations.append(annotation)
+            annotations.append(inter_annotations)
+
         return annotations
+
 
 
 def get_arguments():
@@ -125,4 +172,4 @@ if __name__ == "__main__":
     os.makedirs(folder_name, exist_ok=True)
     save_path = os.path.join(folder_name, image_name)
     cv2.imwrite(save_path, cv2.cvtColor(image, cv2.COLOR_BGR2RGB))
-    print(annotations["bbox"])
+    #print(annotations["bbox"])

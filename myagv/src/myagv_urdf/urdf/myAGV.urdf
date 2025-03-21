@@ -1,0 +1,31 @@
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro" name="myAGV">
+
+
+    <link name="base_footprint">
+        <visual>
+        <geometry>
+            <mesh filename="file://$(find myagv_urdf)/urdf/myagv_base.dae" scale="1 1 1"/>
+        </geometry>
+        <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0"/>
+        <material name="black">
+            <color rgba="0.7 0.7 0.0 1.0"/>
+        </material>
+        </visual>   
+    </link>
+    <link name="laser_frame"/>
+    <link name="imu_link"/>
+    
+    <joint name="base_link_to_laser_link" type="fixed">
+        <parent link="base_footprint"/>
+        <child link="laser_frame"/>
+        <origin xyz="0.065 0.0 0.0" rpy="0.0 0.0 0.0"/>
+    </joint>
+
+    <joint name="base_link_to_imu_link" type="fixed">
+        <parent link="base_footprint"/>
+        <child link="imu_link"/>
+        <origin xyz="-0.015 0.0 0.0" rpy="0.0 0.0 0.0"/>
+    </joint>
+
+</robot>
