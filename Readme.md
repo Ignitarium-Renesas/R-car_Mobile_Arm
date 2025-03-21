@@ -64,7 +64,7 @@ Pass: IGN_Robo
 Log in to the MyAGV Mobile Base using SSH:
 ```sh
 ssh er@192.168.0.222
-# Password: Elephant
+# Password: Elephant (default password for Elephant Robotics Hardware)
 ```
 
 ### Step 3: Launch the RealSense Camera Node
