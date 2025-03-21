@@ -67,7 +67,7 @@ class Pick_Object(Node):
         
         # Declare the home_pose parameter with a default value
         #self.declare_parameter('home_pose', [0, 45, 50, -90, 0, 48]) #48 degrees for the gripper    ........... for normal picking 
-        self.declare_parameter('home_pose', [25, 5, -51, -35, 4, 75])        # .............................. for Bin Picking 
+        self.declare_parameter('home_pose', [25, 5, -51, -35, 4, 75])
         self.declare_parameter('place_pose', [150.6, -138.3, 110.8, -70.01, 81.84, -85.9])
         
         # Declare start_pose and end_pose as parameters
@@ -632,7 +632,6 @@ class Pick_Object(Node):
                     yaw = yaw + 45.0
                     if yaw > 180.0:
                         yaw = -(yaw - 180.0)
-                        
                 coords_data = [
                     (base_pose.position.x - 0.0)*1000,
                     (base_pose.position.y - 0.0)*1000,  

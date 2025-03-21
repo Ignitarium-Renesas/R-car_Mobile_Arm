@@ -773,3 +773,63 @@ def rotation_matrix_to_euler(R):
     roll = np.degrees(roll)
 
     return roll, pitch, yaw
+
+
+
+def distance_to_line(px, py, x1, y1, x2, y2):
+    """Compute perpendicular distance from point (px, py) to line (x1, y1) - (x2, y2)."""
+    line_length = np.hypot(y2 - y1, x2 - x1)  # Store line length to avoid recomputation
+    return abs((y2 - y1) * px - (x2 - x1) * py + x2 * y1 - y2 * x1) / line_length
+
+def smallest_angle_with_x_axis(p1, p2):
+    """Find the smallest positive angle (0-90°) between a line (p1, p2) and the x-axis."""
+    x1, y1 = p1
+    x2, y2 = p2
+
+    # Compute the angle in radians
+    theta_rad = np.arctan2(abs(y2 - y1), abs(x2 - x1))
+
+    # Convert to degrees
+    return np.degrees(theta_rad)  # Always between [0, 90]
+
+def find_parallel_line_through_center(contour):
+    """Find a line parallel to the closest side of the min-area rectangle that passes through the center."""
+    # Get the minimum area bounding rectangle
+    rect = cv2.minAreaRect(contour)  
+    box = cv2.boxPoints(rect)  # Get 4 corner points
+    box = np.intp(box)  # Convert to integer
+    (cx, cy) = map(int, rect[0])  # Center of rectangle (ensure integer)
+
+    # Define the four sides of the rotated rectangle
+    sides = [
+        ("side1", box[0], box[1]),  # Between point 0 and 1
+        ("side2", box[1], box[2]),  # Between point 1 and 2
+        ("side3", box[2], box[3]),  # Between point 2 and 3
+        ("side4", box[3], box[0])   # Between point 3 and 0
+    ]
+
+    # Find the closest side to the center
+    min_distance = float('inf')
+    best_p1, best_p2 = None, None
+
+    for _, p1, p2 in sides:
+        dist = distance_to_line(cx, cy, p1[0], p1[1], p2[0], p2[1])
+        if dist < min_distance:
+            min_distance = dist
+            best_p1, best_p2 = p1, p2  # Store the endpoints of the closest side
+
+    # Compute the direction vector of the closest side
+    dx = best_p2[0] - best_p1[0]
+    dy = best_p2[1] - best_p1[1]
+
+    # Find the new line passing through the center and parallel to the closest side
+    new_p1 = (int(cx - dx / 2), int(cy - dy / 2))
+    new_p2 = (int(cx + dx / 2), int(cy + dy / 2))
+
+    # Compute the smallest angle with the x-axis
+    angle = smallest_angle_with_x_axis(new_p1, new_p2)
+
+    # Determine the slope sign
+    slope_sign = "Positive" if dy * dx > 0 else "Negative"
+
+    return new_p1, new_p2, angle, slope_sign

@@ -225,7 +225,7 @@ class TaskNode(Node):
         self.get_logger().info("moving in x to pick object")
 
         arm_move_x_request=ArmLinearControl.Request()
-        arm_move_x_request.pick_point_x = 5.0      #40 default 
+        arm_move_x_request.pick_point_x = 0.0      #40 default 
         arm_move_x_future = self.arm_linear_control_client.call_async(arm_move_x_request)
         arm_move_x_future.add_done_callback(self.move_x_cb)
     
@@ -242,10 +242,10 @@ class TaskNode(Node):
         self.get_logger().info('Setting post pick pose...')
         arm_move_request = ArmMoveToPick.Request()
         arm_move_request.base_pose.x = 50.0
-        arm_move_request.base_pose.y =  200.3
-        arm_move_request.base_pose.z =  270.0
+        arm_move_request.base_pose.y =  150.0
+        arm_move_request.base_pose.z =  250.0
         arm_move_request.base_pose.rx =  -90.0
-        arm_move_request.base_pose.ry = 45.0
+        arm_move_request.base_pose.ry = 48.0
         arm_move_request.base_pose.rz = -90.0
 
         arm_move_future = self.arm_set_pose_client.call_async(arm_move_request)
