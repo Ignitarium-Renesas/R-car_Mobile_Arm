@@ -15,10 +15,10 @@ The **Mobile Pick and Place** project involves a robotic arm mounted on an Auton
 
 
 ## Prerequisites
-- ROS 2 Humble installed on your system.
+- ROS 2 [Humble](https://docs.ros.org/en/humble/Installation/Ubuntu-Install-Debs.html) installed on your system.
 - Correct hardware connections for the AMR and robotic arm.
 - A YOLO v8-based object detection model.
-- Install Node.js for GUI.
+- Install [Node.js](https://nodejs.org/en/download/) for GUI.
 
 ## Steps to Set Up the Project
 
@@ -64,7 +64,7 @@ Pass: IGN_Robo
 Log in to the MyAGV Mobile Base using SSH:
 ```sh
 ssh er@192.168.0.222
-# Password: Elephant
+# Password: Elephant (default password for Elephant Robotics Hardware)
 ```
 
 ### Step 3: Launch the RealSense Camera Node
