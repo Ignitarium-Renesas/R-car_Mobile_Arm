@@ -84,7 +84,10 @@ class MainApp:
                   white_pos_x_pick_offset=0.10,blue_neg_x_pick_offset=0.20,blue_pos_x_pick_offset=0.0):
         
         if Dof_6d:
-            center_point = self.cam_6d_infer(color_image=color_image, depth_image=depth_image)
+            center_point = self.cam_6d_infer(color_image=color_image, depth_image=depth_image,
+                              object_name=object_name, save_image=save_image, white_neg_x_pick_offset=white_neg_x_pick_offset,
+                              white_pos_x_pick_offset=white_pos_x_pick_offset,blue_neg_x_pick_offset=blue_neg_x_pick_offset,
+                              blue_pos_x_pick_offset=blue_pos_x_pick_offset)
         else:
             center_point = self.cam_3d_infer(color_image=color_image, depth_image=depth_image,
                               object_name=object_name, save_image=save_image, white_neg_x_pick_offset=white_neg_x_pick_offset,
@@ -93,7 +96,7 @@ class MainApp:
         return center_point
     
 
-    def cam_6d_infer(self,color_image, depth_image):
+    def cam_6d_infer(self,color_image, depth_image, object_name,save_image,white_neg_x_pick_offset,white_pos_x_pick_offset,blue_neg_x_pick_offset,blue_pos_x_pick_offset):
         if not hasattr(self, 'detection_count'):
             self.detection_count = 0
         if not hasattr(self, 'no_detection_count'):
@@ -102,7 +105,10 @@ class MainApp:
         rgb_image = color_image.copy()
         self.has_detected = False
 
-        self.center_point, self.has_detected = self.icp.get_pose(target_image=rgb_image, target_depth = depth_image)
+        self.center_point, self.has_detected = self.icp.get_pose(target_image=rgb_image, target_depth = depth_image,object_name=object_name,
+                                                white_neg_x_pick_offset=white_neg_x_pick_offset,white_pos_x_pick_offset=white_pos_x_pick_offset,
+                                                blue_neg_x_pick_offset=blue_neg_x_pick_offset,blue_pos_x_pick_offset=blue_pos_x_pick_offset)
+
         print(f"pose: {self.center_point}")
 
         return self.center_point, color_image

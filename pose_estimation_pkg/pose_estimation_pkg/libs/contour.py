@@ -6,7 +6,7 @@ import os
 from datetime import datetime
 import torch
 
-from pose_estimation_pkg.libs.utils.utils import get_slope, compute_angle, apply_rotation, get_bounding_rectangle, get_slope_from_cntr
+from pose_estimation_pkg.libs.utils.utils import get_slope, compute_angle, apply_rotation, get_bounding_rectangle, get_slope_from_cntr,find_parallel_line_through_center
 from pose_estimation_pkg.libs.segmentation import Segmentation
 
 
@@ -50,14 +50,19 @@ class Segment:
             key = cv2.waitKey(0) & 0xff
 
         if len(contours) != 0:
-            rect_points = get_bounding_rectangle(contours[0])
-            x1, y1, x2,y2 = rect_points
-            cv2.line(image, (x1, y1), (x2, y2), (0,0,255), 10)
+            # rect_points = get_bounding_rectangle(contours[0])
+            # x1, y1, x2,y2 = rect_points
+            best_p1, best_p2,angle,slope_sign = find_parallel_line_through_center(contours[0])
+            cv2.line(image, best_p1, best_p2, (0,0,255), 10)
             cv2.imwrite(f"x_0.jpg", image) 
-            # TODO: Later change it for multiple objects
-            return rect_points, contours[0]
+            if angle == 90.0:
+                return 90.0, slope_sign, contours[0]
+            elif slope_sign == "Positive":
+                angle = 180 - angle
+                return angle, slope_sign,contours[0]
+            return angle, slope_sign, contours[0]                
         
-        return None, None    
+        return None, None, None    
 
 
     def get_segment(self,color_image):
